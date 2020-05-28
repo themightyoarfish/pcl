@@ -217,7 +217,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr xyzcloud;
 std::vector<std::string> current_spheres;
 
 void removeSphere(const pcl::visualization::KeyboardEvent &event) {
-  if (event.isCtrlPressed() && event.keyUp() && event.getKeySym() == "z") {
+  if (event.keyDown() && event.getKeySym() == "z") {
     if (current_spheres.size() > 0) {
       p->removeShape(current_spheres.back());
       current_spheres.pop_back();
@@ -289,6 +289,9 @@ void pp_callback(const pcl::visualization::PointPickingEvent &event,
     // Add a marker to the picket point
     std::string name = "sphere-" + std::to_string(current_spheres.size());
     p->addSphere<pcl::PointXYZ>(pos, 0.01, 1, 0, 0, name);
+    p->setPointCloudRenderingProperties(
+            pcl::visualization::PCL_VISUALIZER_OPACITY, 0.5,
+            name);
     current_spheres.push_back(name);
   }
 }
