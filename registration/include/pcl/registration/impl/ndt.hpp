@@ -41,9 +41,12 @@
 #ifndef PCL_REGISTRATION_NDT_IMPL_H_
 #define PCL_REGISTRATION_NDT_IMPL_H_
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace pcl
+{
+
 template<typename PointSource, typename PointTarget>
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributionsTransform () 
+NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributionsTransform ()
   : target_cells_ ()
   , resolution_ (1.0f)
   , step_size_ (0.1)
@@ -51,11 +54,6 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributions
   , gauss_d1_ ()
   , gauss_d2_ ()
   , trans_probability_ ()
-  , j_ang_a_ (), j_ang_b_ (), j_ang_c_ (), j_ang_d_ (), j_ang_e_ (), j_ang_f_ (), j_ang_g_ (), j_ang_h_ ()
-  , h_ang_a2_ (), h_ang_a3_ (), h_ang_b2_ (), h_ang_b3_ (), h_ang_c2_ (), h_ang_c3_ (), h_ang_d1_ (), h_ang_d2_ ()
-  , h_ang_d3_ (), h_ang_e1_ (), h_ang_e2_ (), h_ang_e3_ (), h_ang_f1_ (), h_ang_f2_ (), h_ang_f3_ ()
-  , point_gradient_ ()
-  , point_hessian_ ()
 {
   reg_name_ = "NormalDistributionsTransform";
 
@@ -64,17 +62,17 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::NormalDistributions
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10.0 * (1 - outlier_ratio_);
   gauss_c2 = outlier_ratio_ / pow (resolution_, 3);
-  gauss_d3 = -log (gauss_c2);
-  gauss_d1_ = -log ( gauss_c1 + gauss_c2 ) - gauss_d3;
-  gauss_d2_ = -2 * log ((-log ( gauss_c1 * exp ( -0.5 ) + gauss_c2 ) - gauss_d3) / gauss_d1_);
+  gauss_d3 = -std::log (gauss_c2);
+  gauss_d1_ = -std::log ( gauss_c1 + gauss_c2 ) - gauss_d3;
+  gauss_d2_ = -2 * std::log ((-std::log ( gauss_c1 * std::exp ( -0.5 ) + gauss_c2 ) - gauss_d3) / gauss_d1_);
 
   transformation_epsilon_ = 0.1;
   max_iterations_ = 35;
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> void
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
+NormalDistributionsTransform<PointSource, PointTarget>::computeTransformation (PointCloudSource &output, const Eigen::Matrix4f &guess)
 {
   nr_iterations_ = 0;
   converged_ = false;
@@ -84,9 +82,9 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformati
   // Initializes the gaussian fitting parameters (eq. 6.8) [Magnusson 2009]
   gauss_c1 = 10 * (1 - outlier_ratio_);
   gauss_c2 = outlier_ratio_ / pow (resolution_, 3);
-  gauss_d3 = -log (gauss_c2);
-  gauss_d1_ = -log ( gauss_c1 + gauss_c2 ) - gauss_d3;
-  gauss_d2_ = -2 * log ((-log ( gauss_c1 * exp ( -0.5 ) + gauss_c2 ) - gauss_d3) / gauss_d1_);
+  gauss_d3 = -std::log (gauss_c2);
+  gauss_d1_ = -std::log ( gauss_c1 + gauss_c2 ) - gauss_d3;
+  gauss_d2_ = -2 * std::log ((-std::log ( gauss_c1 * std::exp ( -0.5 ) + gauss_c2 ) - gauss_d3) / gauss_d1_);
 
   if (guess != Eigen::Matrix4f::Identity ())
   {
@@ -114,7 +112,6 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformati
   Eigen::Matrix<double, 6, 6> hessian;
 
   double score = 0;
-  double delta_p_norm;
 
   // Calculate derivates of initial transform vector, subsequent derivative calculations are done in the step length determination.
   score = computeDerivatives (score_gradient, hessian, output, p);
@@ -130,9 +127,9 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformati
     delta_p = sv.solve (-score_gradient);
 
     //Calculate step length with guarnteed sufficient decrease [More, Thuente 1994]
-    delta_p_norm = delta_p.norm ();
+    double delta_p_norm = delta_p.norm ();
 
-    if (delta_p_norm == 0 || delta_p_norm != delta_p_norm)
+    if (delta_p_norm == 0 || std::isnan(delta_p_norm))
     {
       trans_probability_ = score / static_cast<double> (input_->points.size ());
       converged_ = delta_p_norm == delta_p_norm;
@@ -150,10 +147,10 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformati
                        Eigen::AngleAxis<float> (static_cast<float> (delta_p (5)), Eigen::Vector3f::UnitZ ())).matrix ();
 
 
-    p = p + delta_p;
+    p += delta_p;
 
     // Update Visualizer (untested)
-    if (update_visualizer_ != 0)
+    if (update_visualizer_)
       update_visualizer_ (output, std::vector<int>(), *target_, std::vector<int>() );
 
     double cos_angle = 0.5 * (transformation_.coeff (0, 0) + transformation_.coeff (1, 1) + transformation_.coeff (2, 2) - 1);
@@ -177,13 +174,13 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeTransformati
   trans_probability_ = score / static_cast<double> (input_->points.size ());
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> double
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives (Eigen::Matrix<double, 6, 1> &score_gradient,
-                                                                                 Eigen::Matrix<double, 6, 6> &hessian,
-                                                                                 PointCloudSource &trans_cloud,
-                                                                                 Eigen::Matrix<double, 6, 1> &p,
-                                                                                 bool compute_hessian)
+NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives (Eigen::Matrix<double, 6, 1> &score_gradient,
+                                                                            Eigen::Matrix<double, 6, 6> &hessian,
+                                                                            PointCloudSource &trans_cloud,
+                                                                            Eigen::Matrix<double, 6, 1> &p,
+                                                                            bool compute_hessian)
 {
   // Original Point and Transformed Point
   PointSource x_pt, x_trans_pt;
@@ -202,7 +199,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives 
   computeAngleDerivatives (p);
 
   // Update gradient and hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
-  for (size_t idx = 0; idx < input_->points.size (); idx++)
+  for (std::size_t idx = 0; idx < input_->points.size (); idx++)
   {
     x_trans_pt = trans_cloud.points[idx];
 
@@ -211,7 +208,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives 
     std::vector<float> distances;
     target_cells_.radiusSearch (x_trans_pt, resolution_, neighborhood, distances);
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); neighborhood_it++)
+    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); ++neighborhood_it)
     {
       cell = *neighborhood_it;
       x_pt = input_->points[idx];
@@ -234,13 +231,13 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeDerivatives 
   return (score);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> void
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives (Eigen::Matrix<double, 6, 1> &p, bool compute_hessian)
+NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivatives (Eigen::Matrix<double, 6, 1> &p, bool compute_hessian)
 {
   // Simplified math for near 0 angles
   double cx, cy, cz, sx, sy, sz;
-  if (fabs (p (3)) < 10e-5)
+  if (std::abs (p (3)) < 10e-5)
   {
     //p(3) = 0;
     cx = 1.0;
@@ -248,10 +245,10 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivat
   }
   else
   {
-    cx = cos (p (3));
+    cx = std::cos (p (3));
     sx = sin (p (3));
   }
-  if (fabs (p (4)) < 10e-5)
+  if (std::abs (p (4)) < 10e-5)
   {
     //p(4) = 0;
     cy = 1.0;
@@ -259,11 +256,11 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivat
   }
   else
   {
-    cy = cos (p (4));
+    cy = std::cos (p (4));
     sy = sin (p (4));
   }
 
-  if (fabs (p (5)) < 10e-5)
+  if (std::abs (p (5)) < 10e-5)
   {
     //p(5) = 0;
     cz = 1.0;
@@ -271,7 +268,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivat
   }
   else
   {
-    cz = cos (p (5));
+    cz = std::cos (p (5));
     sz = sin (p (5));
   }
 
@@ -311,9 +308,9 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeAngleDerivat
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> void
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives (Eigen::Vector3d &x, bool compute_hessian)
+NormalDistributionsTransform<PointSource, PointTarget>::computePointDerivatives (Eigen::Vector3d &x, bool compute_hessian)
 {
   // Calculate first derivative of Transformation Equation 6.17 w.r.t. transform vector p.
   // Derivative w.r.t. ith element of transform vector corresponds to column i, Equation 6.18 and 6.19 [Magnusson 2009]
@@ -352,23 +349,23 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computePointDerivat
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> double
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives (Eigen::Matrix<double, 6, 1> &score_gradient,
-                                                                                Eigen::Matrix<double, 6, 6> &hessian,
-                                                                                Eigen::Vector3d &x_trans, Eigen::Matrix3d &c_inv,
-                                                                                bool compute_hessian)
+NormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives (Eigen::Matrix<double, 6, 1> &score_gradient,
+                                                                           Eigen::Matrix<double, 6, 6> &hessian,
+                                                                           Eigen::Vector3d &x_trans, Eigen::Matrix3d &c_inv,
+                                                                           bool compute_hessian)
 {
   Eigen::Vector3d cov_dxd_pi;
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-  double e_x_cov_x = exp (-gauss_d2_ * x_trans.dot (c_inv * x_trans) / 2);
+  double e_x_cov_x = std::exp (-gauss_d2_ * x_trans.dot (c_inv * x_trans) / 2);
   // Calculate probability of transformed points existence, Equation 6.9 [Magnusson 2009]
   double score_inc = -gauss_d1_ * e_x_cov_x;
 
   e_x_cov_x = gauss_d2_ * e_x_cov_x;
 
   // Error checking for invalid values.
-  if (e_x_cov_x > 1 || e_x_cov_x < 0 || e_x_cov_x != e_x_cov_x)
+  if (e_x_cov_x > 1 || e_x_cov_x < 0 || std::isnan(e_x_cov_x))
     return (0);
 
   // Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
@@ -385,7 +382,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives (
 
     if (compute_hessian)
     {
-      for (int j = 0; j < hessian.cols (); j++)
+      for (Eigen::Index j = 0; j < hessian.cols (); j++)
       {
         // Update hessian, Equation 6.13 [Magnusson 2009]
         hessian (i, j) += e_x_cov_x * (-gauss_d2_ * x_trans.dot (cov_dxd_pi) * x_trans.dot (c_inv * point_gradient_.col (j)) +
@@ -398,10 +395,10 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateDerivatives (
   return (score_inc);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> void
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eigen::Matrix<double, 6, 6> &hessian,
-                                                                             PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &)
+NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eigen::Matrix<double, 6, 6> &hessian,
+                                                                        PointCloudSource &trans_cloud, Eigen::Matrix<double, 6, 1> &)
 {
   // Original Point and Transformed Point
   PointSource x_pt, x_trans_pt;
@@ -417,7 +414,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eig
   // Precompute Angular Derivatives unessisary because only used after regular derivative calculation
 
   // Update hessian for each point, line 17 in Algorithm 2 [Magnusson 2009]
-  for (size_t idx = 0; idx < input_->points.size (); idx++)
+  for (std::size_t idx = 0; idx < input_->points.size (); idx++)
   {
     x_trans_pt = trans_cloud.points[idx];
 
@@ -426,7 +423,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eig
     std::vector<float> distances;
     target_cells_.radiusSearch (x_trans_pt, resolution_, neighborhood, distances);
 
-    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); neighborhood_it++)
+    for (typename std::vector<TargetGridLeafConstPtr>::iterator neighborhood_it = neighborhood.begin (); neighborhood_it != neighborhood.end (); ++neighborhood_it)
     {
       cell = *neighborhood_it;
 
@@ -450,16 +447,16 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeHessian (Eig
   }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> void
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eigen::Matrix<double, 6, 6> &hessian, Eigen::Vector3d &x_trans, Eigen::Matrix3d &c_inv)
+NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eigen::Matrix<double, 6, 6> &hessian, Eigen::Vector3d &x_trans, Eigen::Matrix3d &c_inv)
 {
   Eigen::Vector3d cov_dxd_pi;
   // e^(-d_2/2 * (x_k - mu_k)^T Sigma_k^-1 (x_k - mu_k)) Equation 6.9 [Magnusson 2009]
-  double e_x_cov_x = gauss_d2_ * exp (-gauss_d2_ * x_trans.dot (c_inv * x_trans) / 2);
+  double e_x_cov_x = gauss_d2_ * std::exp (-gauss_d2_ * x_trans.dot (c_inv * x_trans) / 2);
 
   // Error checking for invalid values.
-  if (e_x_cov_x > 1 || e_x_cov_x < 0 || e_x_cov_x != e_x_cov_x)
+  if (e_x_cov_x > 1 || e_x_cov_x < 0 || std::isnan(e_x_cov_x))
     return;
 
   // Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
@@ -470,7 +467,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eige
     // Sigma_k^-1 d(T(x,p))/dpi, Reusable portion of Equation 6.12 and 6.13 [Magnusson 2009]
     cov_dxd_pi = c_inv * point_gradient_.col (i);
 
-    for (int j = 0; j < hessian.cols (); j++)
+    for (Eigen::Index j = 0; j < hessian.cols (); j++)
     {
       // Update hessian, Equation 6.13 [Magnusson 2009]
       hessian (i, j) += e_x_cov_x * (-gauss_d2_ * x_trans.dot (cov_dxd_pi) * x_trans.dot (c_inv * point_gradient_.col (j)) +
@@ -481,11 +478,11 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateHessian (Eige
 
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> bool
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (double &a_l, double &f_l, double &g_l,
-                                                                               double &a_u, double &f_u, double &g_u,
-                                                                               double a_t, double f_t, double g_t)
+NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (double &a_l, double &f_l, double &g_l,
+                                                                          double &a_u, double &f_u, double &g_u,
+                                                                          double a_t, double f_t, double g_t)
 {
   // Case U1 in Update Algorithm and Case a in Modified Update Algorithm [More, Thuente 1994]
   if (f_t > f_l)
@@ -496,7 +493,6 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (d
     return (false);
   }
   // Case U2 in Update Algorithm and Case b in Modified Update Algorithm [More, Thuente 1994]
-  else
   if (g_t * (a_l - a_t) > 0)
   {
     a_l = a_t;
@@ -505,7 +501,6 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (d
     return (false);
   }
   // Case U3 in Update Algorithm and Case c in Modified Update Algorithm [More, Thuente 1994]
-  else
   if (g_t * (a_l - a_t) < 0)
   {
     a_u = a_l;
@@ -518,15 +513,14 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::updateIntervalMT (d
     return (false);
   }
   // Interval Converged
-  else
-    return (true);
+  return (true);
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> double
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT (double a_l, double f_l, double g_l,
-                                                                                    double a_u, double f_u, double g_u,
-                                                                                    double a_t, double f_t, double g_t)
+NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelectionMT (double a_l, double f_l, double g_l,
+                                                                               double a_u, double f_u, double g_u,
+                                                                               double a_t, double f_t, double g_t)
 {
   // Case 1 in Trial Value Selection [More, Thuente 1994]
   if (f_t > f_l)
@@ -544,11 +538,9 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelection
 
     if (std::fabs (a_c - a_l) < std::fabs (a_q - a_l))
       return (a_c);
-    else
-      return (0.5 * (a_q + a_c));
+    return (0.5 * (a_q + a_c));
   }
   // Case 2 in Trial Value Selection [More, Thuente 1994]
-  else
   if (g_t * g_l < 0)
   {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
@@ -564,11 +556,9 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelection
 
     if (std::fabs (a_c - a_t) >= std::fabs (a_s - a_t))
       return (a_c);
-    else
-      return (a_s);
+    return (a_s);
   }
   // Case 3 in Trial Value Selection [More, Thuente 1994]
-  else
   if (std::fabs (g_t) <= std::fabs (g_l))
   {
     // Calculate the minimizer of the cubic that interpolates f_l, f_t, g_l and g_t
@@ -590,26 +580,22 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::trialValueSelection
 
     if (a_t > a_l)
       return (std::min (a_t + 0.66 * (a_u - a_t), a_t_next));
-    else
-      return (std::max (a_t + 0.66 * (a_u - a_t), a_t_next));
+    return (std::max (a_t + 0.66 * (a_u - a_t), a_t_next));
   }
   // Case 4 in Trial Value Selection [More, Thuente 1994]
-  else
-  {
-    // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
-    // Equation 2.4.52 [Sun, Yuan 2006]
-    double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
-    double w = std::sqrt (z * z - g_t * g_u);
-    // Equation 2.4.56 [Sun, Yuan 2006]
-    return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
-  }
+  // Calculate the minimizer of the cubic that interpolates f_u, f_t, g_u and g_t
+  // Equation 2.4.52 [Sun, Yuan 2006]
+  double z = 3 * (f_t - f_u) / (a_t - a_u) - g_t - g_u;
+  double w = std::sqrt (z * z - g_t * g_u);
+  // Equation 2.4.56 [Sun, Yuan 2006]
+  return (a_u + (a_t - a_u) * (w - g_u - z) / (g_t - g_u + 2 * w));
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 template<typename PointSource, typename PointTarget> double
-pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT (const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max,
-                                                                                  double step_min, double &score, Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian,
-                                                                                  PointCloudSource &trans_cloud)
+NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT (const Eigen::Matrix<double, 6, 1> &x, Eigen::Matrix<double, 6, 1> &step_dir, double step_init, double step_max,
+                                                                             double step_min, double &score, Eigen::Matrix<double, 6, 1> &score_gradient, Eigen::Matrix<double, 6, 6> &hessian,
+                                                                             PointCloudSource &trans_cloud)
 {
   // Set the value of phi(0), Equation 1.3 [More, Thuente 1994]
   double phi_0 = -score;
@@ -623,13 +609,10 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT
     // Not a decent direction
     if (d_phi_0 == 0)
       return 0;
-    else
-    {
-      // Reverse step direction and calculate optimal step.
-      d_phi_0 *= -1;
-      step_dir *= -1;
+    // Reverse step direction and calculate optimal step.
+    d_phi_0 *= -1;
+    step_dir *= -1;
 
-    }
   }
 
   // The Search Algorithm for T(mu) [More, Thuente 1994]
@@ -733,12 +716,12 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT
       open_interval = false;
 
       // Converts f_l and g_l from psi to phi
-      f_l = f_l + phi_0 - mu * d_phi_0 * a_l;
-      g_l = g_l + mu * d_phi_0;
+      f_l += phi_0 - mu * d_phi_0 * a_l;
+      g_l += mu * d_phi_0;
 
       // Converts f_u and g_u from psi to phi
-      f_u = f_u + phi_0 - mu * d_phi_0 * a_u;
-      g_u = g_u + mu * d_phi_0;
+      f_u += phi_0 - mu * d_phi_0 * a_u;
+      g_u += mu * d_phi_0;
     }
 
     if (open_interval)
@@ -768,4 +751,7 @@ pcl::NormalDistributionsTransform<PointSource, PointTarget>::computeStepLengthMT
   return (a_t);
 }
 
+} // namespace pcl
+
 #endif // PCL_REGISTRATION_NDT_IMPL_H_
+

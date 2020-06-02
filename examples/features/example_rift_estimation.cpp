@@ -37,15 +37,11 @@
  *
  *
  */
-// STL
+
 #include <iostream>
 
-// PCL
 #include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/common/io.h>
 #include <pcl/features/normal_3d.h>
-#include <pcl/kdtree/kdtree_flann.h>
 #include <pcl/features/rift.h>
 #include <pcl/features/intensity_gradient.h>
 

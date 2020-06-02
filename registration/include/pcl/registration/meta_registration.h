@@ -35,8 +35,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef PCL_REGISTRATION_META_REGISTRATION_H_
-#define PCL_REGISTRATION_META_REGISTRATION_H_
+#pragma once
 
 #include <pcl/point_cloud.h>
 #include <pcl/registration/registration.h>
@@ -76,11 +75,11 @@ namespace pcl {
     template <typename PointT, typename Scalar = float>
     class MetaRegistration {
       public:
-        typedef typename pcl::PointCloud<PointT>::Ptr PointCloudPtr;
-        typedef typename pcl::PointCloud<PointT>::ConstPtr PointCloudConstPtr;
+        using PointCloudPtr = typename pcl::PointCloud<PointT>::Ptr;
+        using PointCloudConstPtr = typename pcl::PointCloud<PointT>::ConstPtr;
 
-        typedef typename pcl::Registration<PointT,PointT,Scalar>::Ptr RegistrationPtr;
-        typedef typename pcl::Registration<PointT,PointT,Scalar>::Matrix4 Matrix4;
+        using RegistrationPtr = typename pcl::Registration<PointT,PointT,Scalar>::Ptr;
+        using Matrix4 = typename pcl::Registration<PointT,PointT,Scalar>::Matrix4;
 
         MetaRegistration ();
 
@@ -88,10 +87,10 @@ namespace pcl {
         virtual ~MetaRegistration () {};
 
         /** \brief Register new point cloud
-          * \note You have to set a valid registration object with @ref setICP before using this
+          * \note You have to set a valid registration object with \ref setRegistration before using this
           * \param[in] cloud point cloud to register
           * \param[in] delta_estimate estimated transform between last registered cloud and this one
-          * \return true if ICP converged
+          * \return true if registration converged
           */
         bool
         registerCloud (const PointCloudConstPtr& cloud, const Matrix4& delta_estimate = Matrix4::Identity ());
@@ -100,7 +99,7 @@ namespace pcl {
         inline Matrix4
         getAbsoluteTransform () const;
 
-        /** \brief Reset MetaICP without resetting registration_ */
+        /** \brief Reset MetaRegistration without resetting registration_ */
         inline void
         reset ();
 
@@ -127,5 +126,3 @@ namespace pcl {
 }
 
 #include <pcl/registration/impl/meta_registration.hpp>
-
-#endif /*PCL_REGISTRATION_META_REGISTRATION_H_*/

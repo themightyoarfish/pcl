@@ -37,15 +37,15 @@
 *
 */
 
-#include <gtest/gtest.h>
+#include <pcl/test/gtest.h>
 #include <pcl/point_cloud.h>
 #include <pcl/pcl_tests.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/features/flare.h>
 
-typedef pcl::search::KdTree<pcl::PointXYZ>::Ptr KdTreePtr;
-typedef pcl::PointCloud<pcl::PointXYZ>::Ptr PointCloudPtr;
+using KdTreePtr = pcl::search::KdTree<pcl::PointXYZ>::Ptr;
+using PointCloudPtr = pcl::PointCloud<pcl::PointXYZ>::Ptr;
 
 PointCloudPtr cloud;
 KdTreePtr tree;

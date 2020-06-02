@@ -35,17 +35,17 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *
  */
-#ifndef PCL_PCL_BASE_H_
-#define PCL_PCL_BASE_H_
+
+#pragma once
 
 #if defined __GNUC__
 #  pragma GCC system_header
 #endif
 
-// Include PCL macros such as PCL_ERROR, etc
+// Include PCL macros such as PCL_ERROR, PCL_MAKE_ALIGNED_OPERATOR_NEW, etc
+#include <pcl/memory.h>
 #include <pcl/pcl_macros.h>
 
-#include <boost/shared_ptr.hpp>
 #include <Eigen/StdVector>
 #include <Eigen/Core>
 
@@ -53,12 +53,13 @@
 #include <pcl/point_cloud.h>
 #include <pcl/PointIndices.h>
 #include <pcl/PCLPointCloud2.h>
+#include <pcl/types.h>
 
 namespace pcl
 {
   // definitions used everywhere
-  typedef boost::shared_ptr <std::vector<int> > IndicesPtr;
-  typedef boost::shared_ptr <const std::vector<int> > IndicesConstPtr;
+  using IndicesPtr = shared_ptr<Indices>;
+  using IndicesConstPtr = shared_ptr<const Indices>;
 
   /////////////////////////////////////////////////////////////////////////////////////////
   /** \brief PCL base class. Implements methods that are used by most PCL algorithms.
@@ -68,12 +69,12 @@ namespace pcl
   class PCLBase
   {
     public:
-      typedef pcl::PointCloud<PointT> PointCloud;
-      typedef typename PointCloud::Ptr PointCloudPtr;
-      typedef typename PointCloud::ConstPtr PointCloudConstPtr;
+      using PointCloud = pcl::PointCloud<PointT>;
+      using PointCloudPtr = typename PointCloud::Ptr;
+      using PointCloudConstPtr = typename PointCloud::ConstPtr;
 
-      typedef boost::shared_ptr<PointIndices> PointIndicesPtr;
-      typedef boost::shared_ptr<PointIndices const> PointIndicesConstPtr;
+      using PointIndicesPtr = PointIndices::Ptr;
+      using PointIndicesConstPtr = PointIndices::ConstPtr;
 
       /** \brief Empty constructor. */
       PCLBase ();
@@ -82,11 +83,7 @@ namespace pcl
       PCLBase (const PCLBase& base);
 
       /** \brief Destructor. */
-      virtual ~PCLBase ()
-      {
-        input_.reset ();
-        indices_.reset ();
-      }
+      virtual ~PCLBase () = default;
 
       /** \brief Provide a pointer to the input dataset
         * \param[in] cloud the const boost shared pointer to a PointCloud message
@@ -125,7 +122,7 @@ namespace pcl
         * \param[in] nb_cols the number of columns to be considered col_start included
         */
       virtual void
-      setIndices (size_t row_start, size_t col_start, size_t nb_rows, size_t nb_cols);
+      setIndices (std::size_t row_start, std::size_t col_start, std::size_t nb_rows, std::size_t nb_cols);
 
       /** \brief Get a pointer to the vector of indices used. */
       inline IndicesPtr const
@@ -140,7 +137,7 @@ namespace pcl
         * or input_->points[(*indices_)[pos]]
         * \param[in] pos position in indices_ vector
         */
-      inline const PointT& operator[] (size_t pos) const
+      inline const PointT& operator[] (std::size_t pos) const
       {
         return ((*input_)[(*indices_)[pos]]);
       }
@@ -176,7 +173,7 @@ namespace pcl
       deinitCompute ();
 
     public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
   };
 
   /////////////////////////////////////////////////////////////////////////////////////////
@@ -184,22 +181,18 @@ namespace pcl
   class PCL_EXPORTS PCLBase<pcl::PCLPointCloud2>
   {
     public:
-      typedef pcl::PCLPointCloud2 PCLPointCloud2;
-      typedef boost::shared_ptr<PCLPointCloud2> PCLPointCloud2Ptr;
-      typedef boost::shared_ptr<PCLPointCloud2 const> PCLPointCloud2ConstPtr;
+      using PCLPointCloud2 = pcl::PCLPointCloud2;
+      using PCLPointCloud2Ptr = PCLPointCloud2::Ptr;
+      using PCLPointCloud2ConstPtr = PCLPointCloud2::ConstPtr;
 
-      typedef boost::shared_ptr<PointIndices> PointIndicesPtr;
-      typedef boost::shared_ptr<PointIndices const> PointIndicesConstPtr;
+      using PointIndicesPtr = PointIndices::Ptr;
+      using PointIndicesConstPtr = PointIndices::ConstPtr;
 
       /** \brief Empty constructor. */
       PCLBase ();
 
       /** \brief destructor. */
-      virtual ~PCLBase()
-      {
-        input_.reset ();
-        indices_.reset ();
-      }
+      virtual ~PCLBase () = default;
 
       /** \brief Provide a pointer to the input dataset
         * \param cloud the const boost shared pointer to a PointCloud message
@@ -252,12 +245,10 @@ namespace pcl
       bool initCompute ();
       bool deinitCompute ();
     public:
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
   };
 }
 
 #ifdef PCL_NO_PRECOMPILE
 #include <pcl/impl/pcl_base.hpp>
 #endif
-
-#endif  //#ifndef PCL_PCL_BASE_H_

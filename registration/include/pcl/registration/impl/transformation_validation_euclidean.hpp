@@ -37,12 +37,19 @@
  * $Id$
  *
  */
+
 #ifndef PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
 #define PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace pcl
+{
+
+namespace registration
+{
+
 template <typename PointSource, typename PointTarget, typename Scalar> double
-pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, Scalar>::validateTransformation (
+TransformationValidationEuclidean<PointSource, PointTarget, Scalar>::validateTransformation (
   const PointCloudSourceConstPtr &cloud_src,
   const PointCloudTargetConstPtr &cloud_tgt,
   const Matrix4 &transformation_matrix) const
@@ -53,7 +60,7 @@ pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, S
   pcl::PointCloud<PointSource> input_transformed;
   //transformPointCloud (*cloud_src, input_transformed, transformation_matrix);
   input_transformed.resize (cloud_src->size ());
-  for (size_t i = 0; i < cloud_src->size (); ++i)
+  for (std::size_t i = 0; i < cloud_src->size (); ++i)
   {
     const PointSource &src = cloud_src->points[i];
     PointTarget &tgt = input_transformed.points[i];
@@ -74,11 +81,11 @@ pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, S
 
   // For each point in the source dataset
   int nr = 0;
-  for (size_t i = 0; i < input_transformed.points.size (); ++i)
+  for (std::size_t i = 0; i < input_transformed.points.size (); ++i)
   {
     // Find its nearest neighbor in the target
     tree_->nearestKSearch (input_transformed.points[i], 1, nn_indices, nn_dists);
-    
+
     // Deal with occlusions (incomplete targets)
     if (nn_dists[0] > max_range_)
       continue;
@@ -90,9 +97,11 @@ pcl::registration::TransformationValidationEuclidean<PointSource, PointTarget, S
 
   if (nr > 0)
     return (fitness_score / nr);
-  else
-    return (std::numeric_limits<double>::max ());
+  return (std::numeric_limits<double>::max ());
 }
+
+} // namespace registration
+} // namespace pcl
 
 #endif    // PCL_REGISTRATION_TRANSFORMATION_VALIDATION_EUCLIDEAN_IMPL_H_
 

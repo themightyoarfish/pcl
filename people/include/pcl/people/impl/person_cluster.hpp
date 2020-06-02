@@ -177,7 +177,7 @@ pcl::people::PersonCluster<PointT>::init (
     float min_z = c_z_;
     float max_x = c_x_;
     float max_z = c_z_;
-    for (std::vector<int>::const_iterator pit = points_indices_.indices.begin(); pit != points_indices_.indices.end(); pit++)
+    for (std::vector<int>::const_iterator pit = points_indices_.indices.begin(); pit != points_indices_.indices.end(); ++pit)
     {
       PointT* p = &input_cloud->points[*pit];
 
@@ -216,7 +216,7 @@ pcl::people::PersonCluster<PointT>::init (
     float min_z = c_z_;
     float max_y = c_y_;
     float max_z = c_z_;
-    for (std::vector<int>::const_iterator pit = points_indices_.indices.begin(); pit != points_indices_.indices.end(); pit++)
+    for (std::vector<int>::const_iterator pit = points_indices_.indices.begin(); pit != points_indices_.indices.end(); ++pit)
     {
       PointT* p = &input_cloud->points[*pit];
 
@@ -258,7 +258,7 @@ pcl::people::PersonCluster<PointT>::getIndices ()
 }
 
 template <typename PointT> float
-pcl::people::PersonCluster<PointT>::getHeight ()
+pcl::people::PersonCluster<PointT>::getHeight () const
 {
   return (height_);
 }
@@ -286,7 +286,7 @@ pcl::people::PersonCluster<PointT>::updateHeight (const Eigen::VectorXf& ground_
 }
 
 template <typename PointT> float
-pcl::people::PersonCluster<PointT>::getDistance ()
+pcl::people::PersonCluster<PointT>::getDistance () const
 {
   return (distance_);
 }
@@ -340,31 +340,31 @@ pcl::people::PersonCluster<PointT>::getMax ()
 }
 
 template <typename PointT> float
-pcl::people::PersonCluster<PointT>::getAngle ()
+pcl::people::PersonCluster<PointT>::getAngle () const
 {
   return (angle_);
 }
 
 template <typename PointT>
-float pcl::people::PersonCluster<PointT>::getAngleMax ()
+float pcl::people::PersonCluster<PointT>::getAngleMax () const
 {
   return (angle_max_);
 }
 
 template <typename PointT>
-float pcl::people::PersonCluster<PointT>::getAngleMin ()
+float pcl::people::PersonCluster<PointT>::getAngleMin () const
 {
   return (angle_min_);
 }
 
 template <typename PointT>
-int pcl::people::PersonCluster<PointT>::getNumberPoints ()
+int pcl::people::PersonCluster<PointT>::getNumberPoints () const
 {
   return (n_);
 }
 
 template <typename PointT>
-float pcl::people::PersonCluster<PointT>::getPersonConfidence ()
+float pcl::people::PersonCluster<PointT>::getPersonConfidence () const
 {
   return (person_confidence_);
 }

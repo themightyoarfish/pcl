@@ -37,19 +37,14 @@
  *
  */
 
-// STL
 #include <iostream>
-#include <limits>
 
-// PCL
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 #include <pcl/filters/filter.h>
 
 int
 main (int, char**)
 {
-  typedef pcl::PointCloud<pcl::PointXYZ> CloudType;
+  using CloudType = pcl::PointCloud<pcl::PointXYZ>;
   CloudType::Ptr cloud (new CloudType);
   cloud->is_dense = false;
   CloudType::Ptr output_cloud (new CloudType);

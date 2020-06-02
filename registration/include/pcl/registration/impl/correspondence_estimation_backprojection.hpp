@@ -36,14 +36,21 @@
  * $Id$
  *
  */
+
 #ifndef PCL_REGISTRATION_IMPL_CORRESPONDENCE_ESTIMATION_BACK_PROJECTION_HPP_
 #define PCL_REGISTRATION_IMPL_CORRESPONDENCE_ESTIMATION_BACK_PROJECTION_HPP_
 
 #include <pcl/common/copy_point.h>
 
-///////////////////////////////////////////////////////////////////////////////////////////
+
+namespace pcl
+{
+
+namespace registration
+{
+
 template <typename PointSource, typename PointTarget, typename NormalT, typename Scalar> bool
-pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::initCompute ()
+CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::initCompute ()
 {
   if (!source_normals_ || !target_normals_)
   {
@@ -56,7 +63,7 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
 
 ///////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointSource, typename PointTarget, typename NormalT, typename Scalar> void
-pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::determineCorrespondences (
+CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::determineCorrespondences (
     pcl::Correspondences &correspondences, double max_distance)
 {
   if (!initCompute ())
@@ -67,9 +74,8 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   std::vector<int> nn_indices (k_);
   std::vector<float> nn_dists (k_);
 
-  float min_dist = std::numeric_limits<float>::max ();
   int min_index = 0;
-  
+
   pcl::Correspondence corr;
   unsigned int nr_valid_correspondences = 0;
 
@@ -84,16 +90,16 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
       tree_->nearestKSearch (input_->points[*idx_i], k_, nn_indices, nn_dists);
 
       // Among the K nearest neighbours find the one with minimum perpendicular distance to the normal
-      min_dist = std::numeric_limits<float>::max ();
-      
+      float min_dist = std::numeric_limits<float>::max ();
+
       // Find the best correspondence
-      for (size_t j = 0; j < nn_indices.size (); j++)
+      for (std::size_t j = 0; j < nn_indices.size (); j++)
       {
         float cos_angle = source_normals_->points[*idx_i].normal_x * target_normals_->points[nn_indices[j]].normal_x +
                           source_normals_->points[*idx_i].normal_y * target_normals_->points[nn_indices[j]].normal_y +
                           source_normals_->points[*idx_i].normal_z * target_normals_->points[nn_indices[j]].normal_z ;
         float dist = nn_dists[j] * (2.0f - cos_angle * cos_angle);
-        
+
         if (dist < min_dist)
         {
           min_dist = dist;
@@ -112,17 +118,17 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   else
   {
     PointTarget pt;
-    
+
     // Iterate over the input set of source indices
     for (std::vector<int>::const_iterator idx_i = indices_->begin (); idx_i != indices_->end (); ++idx_i)
     {
       tree_->nearestKSearch (input_->points[*idx_i], k_, nn_indices, nn_dists);
- 
+
       // Among the K nearest neighbours find the one with minimum perpendicular distance to the normal
-      min_dist = std::numeric_limits<float>::max ();
-      
+      float min_dist = std::numeric_limits<float>::max ();
+
       // Find the best correspondence
-      for (size_t j = 0; j < nn_indices.size (); j++)
+      for (std::size_t j = 0; j < nn_indices.size (); j++)
       {
         PointSource pt_src;
         // Copy the source data to a target PointTarget format so we can search in the tree
@@ -132,7 +138,7 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
                           source_normals_->points[*idx_i].normal_y * target_normals_->points[nn_indices[j]].normal_y +
                           source_normals_->points[*idx_i].normal_z * target_normals_->points[nn_indices[j]].normal_z ;
         float dist = nn_dists[j] * (2.0f - cos_angle * cos_angle);
-        
+
         if (dist < min_dist)
         {
           min_dist = dist;
@@ -141,7 +147,7 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
       }
       if (min_dist > max_distance)
         continue;
-      
+
       corr.index_query = *idx_i;
       corr.index_match = nn_indices[min_index];
       corr.distance = nn_dists[min_index];//min_dist;
@@ -152,9 +158,9 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   deinitCompute ();
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointSource, typename PointTarget, typename NormalT, typename Scalar> void
-pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::determineReciprocalCorrespondences (
+CorrespondenceEstimationBackProjection<PointSource, PointTarget, NormalT, Scalar>::determineReciprocalCorrespondences (
     pcl::Correspondences &correspondences, double max_distance)
 {
   if (!initCompute ())
@@ -171,9 +177,8 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   std::vector<int> index_reciprocal (1);
   std::vector<float> distance_reciprocal (1);
 
-  float min_dist = std::numeric_limits<float>::max ();
   int min_index = 0;
-  
+
   pcl::Correspondence corr;
   unsigned int nr_valid_correspondences = 0;
   int target_idx = 0;
@@ -189,16 +194,16 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
       tree_->nearestKSearch (input_->points[*idx_i], k_, nn_indices, nn_dists);
 
       // Among the K nearest neighbours find the one with minimum perpendicular distance to the normal
-      min_dist = std::numeric_limits<float>::max ();
-      
+      float min_dist = std::numeric_limits<float>::max ();
+
       // Find the best correspondence
-      for (size_t j = 0; j < nn_indices.size (); j++)
+      for (std::size_t j = 0; j < nn_indices.size (); j++)
       {
         float cos_angle = source_normals_->points[*idx_i].normal_x * target_normals_->points[nn_indices[j]].normal_x +
                           source_normals_->points[*idx_i].normal_y * target_normals_->points[nn_indices[j]].normal_y +
                           source_normals_->points[*idx_i].normal_z * target_normals_->points[nn_indices[j]].normal_z ;
         float dist = nn_dists[j] * (2.0f - cos_angle * cos_angle);
-        
+
         if (dist < min_dist)
         {
           min_dist = dist;
@@ -224,17 +229,17 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   else
   {
     PointTarget pt;
-    
+
     // Iterate over the input set of source indices
     for (std::vector<int>::const_iterator idx_i = indices_->begin (); idx_i != indices_->end (); ++idx_i)
     {
       tree_->nearestKSearch (input_->points[*idx_i], k_, nn_indices, nn_dists);
- 
+
       // Among the K nearest neighbours find the one with minimum perpendicular distance to the normal
-      min_dist = std::numeric_limits<float>::max ();
-      
+      float min_dist = std::numeric_limits<float>::max ();
+
       // Find the best correspondence
-      for (size_t j = 0; j < nn_indices.size (); j++)
+      for (std::size_t j = 0; j < nn_indices.size (); j++)
       {
         PointSource pt_src;
         // Copy the source data to a target PointTarget format so we can search in the tree
@@ -244,7 +249,7 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
                           source_normals_->points[*idx_i].normal_y * target_normals_->points[nn_indices[j]].normal_y +
                           source_normals_->points[*idx_i].normal_z * target_normals_->points[nn_indices[j]].normal_z ;
         float dist = nn_dists[j] * (2.0f - cos_angle * cos_angle);
-        
+
         if (dist < min_dist)
         {
           min_dist = dist;
@@ -253,7 +258,7 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
       }
       if (min_dist > max_distance)
         continue;
-      
+
       // Check if the correspondence is reciprocal
       target_idx = nn_indices[min_index];
       tree_reciprocal_->nearestKSearch (target_->points[target_idx], 1, index_reciprocal, distance_reciprocal);
@@ -270,5 +275,8 @@ pcl::registration::CorrespondenceEstimationBackProjection<PointSource, PointTarg
   correspondences.resize (nr_valid_correspondences);
   deinitCompute ();
 }
+
+} // namespace registration
+} // namespace pcl
 
 #endif    // PCL_REGISTRATION_IMPL_CORRESPONDENCE_ESTIMATION_BACK_PROJECTION_HPP_

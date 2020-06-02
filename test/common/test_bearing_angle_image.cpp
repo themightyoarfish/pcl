@@ -40,7 +40,7 @@
   * \author: Qinghua Li (qinghua__li@163.com)
   */
 
-#include <gtest/gtest.h>
+#include <pcl/test/gtest.h>
 #include <iostream>
 #include <pcl/range_image/bearing_angle_image.h>
 
@@ -70,7 +70,7 @@ TEST (BearingAngleImageTest, GenerateBAImage)
 
   bearing_angle_image.generateBAImage (point_cloud);
 
-  uint8_t grays[6];
+  std::uint8_t grays[6];
   for (int i = 0; i < 3 * 2; ++i)
   {
     grays[i] = (bearing_angle_image.points[i].rgba >> 8) & 0xff;

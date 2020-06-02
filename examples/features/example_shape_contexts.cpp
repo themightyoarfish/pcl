@@ -38,12 +38,9 @@
  */
 
 #include <iostream>
-#include <vector>
 
 #include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
 #include <pcl/features/3dsc.h>
-#include <pcl/features/impl/3dsc.hpp>
 #include <pcl/features/normal_3d.h>
 
 int
@@ -53,7 +50,7 @@ main (int, char** argv)
   std::cout << "Reading " << filename << std::endl;
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
-  if (pcl::io::loadPCDFile <pcl::PointXYZ> (filename.c_str (), *cloud) == -1)
+  if (pcl::io::loadPCDFile <pcl::PointXYZ> (filename, *cloud) == -1)
   // load the file
   {
     PCL_ERROR ("Couldn't read file");

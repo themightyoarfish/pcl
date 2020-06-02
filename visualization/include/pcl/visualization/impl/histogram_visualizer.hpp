@@ -41,10 +41,16 @@
 
 #include <vtkDoubleArray.h>
 
-////////////////////////////////////////////////////////////////////////////////////////////
+
+namespace pcl
+{
+
+namespace visualization
+{
+
 template <typename PointT> bool
-pcl::visualization::PCLHistogramVisualizer::addFeatureHistogram (
-    const pcl::PointCloud<PointT> &cloud, int hsize, 
+PCLHistogramVisualizer::addFeatureHistogram (
+    const pcl::PointCloud<PointT> &cloud, int hsize,
     const std::string &id, int win_width, int win_height)
 {
   RenWinInteractMap::iterator am_it = wins_.find (id);
@@ -71,18 +77,16 @@ pcl::visualization::PCLHistogramVisualizer::addFeatureHistogram (
 
   // Save the pointer/ID pair to the global window map
   wins_[id] = renwinint;
-#if ((VTK_MAJOR_VERSION == 5) && (VTK_MINOR_VERSION <= 4))
-  resetStoppedFlag ();
-#endif
+
   return (true);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointT> bool
-pcl::visualization::PCLHistogramVisualizer::addFeatureHistogram (
-    const pcl::PointCloud<PointT> &cloud, 
+PCLHistogramVisualizer::addFeatureHistogram (
+    const pcl::PointCloud<PointT> &cloud,
     const std::string &field_name,
-    const int index, 
+    const int index,
     const std::string &id, int win_width, int win_height)
 {
   if (index < 0 || index >= cloud.points.size ())
@@ -114,7 +118,7 @@ pcl::visualization::PCLHistogramVisualizer::addFeatureHistogram (
 
   // Parse the cloud data and store it in the array
   double xy[2];
-  for (uint32_t d = 0; d < fields[field_idx].count; ++d)
+  for (std::uint32_t d = 0; d < fields[field_idx].count; ++d)
   {
     xy[0] = d;
     //xy[1] = cloud.points[index].histogram[d];
@@ -128,16 +132,13 @@ pcl::visualization::PCLHistogramVisualizer::addFeatureHistogram (
 
   // Save the pointer/ID pair to the global window map
   wins_[id] = renwinint;
-#if ((VTK_MAJOR_VERSION == 5) && (VTK_MINOR_VERSION <= 4))
-  resetStoppedFlag ();
-#endif
   return (true);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointT> bool
-pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
-    const pcl::PointCloud<PointT> &cloud, int hsize, 
+PCLHistogramVisualizer::updateFeatureHistogram (
+    const pcl::PointCloud<PointT> &cloud, int hsize,
     const std::string &id)
 {
   RenWinInteractMap::iterator am_it = wins_.find (id);
@@ -147,11 +148,11 @@ pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
     return (false);
   }
   RenWinInteract* renwinupd = &wins_[id];
-  
+
   vtkSmartPointer<vtkDoubleArray> xy_array = vtkSmartPointer<vtkDoubleArray>::New ();
   xy_array->SetNumberOfComponents (2);
   xy_array->SetNumberOfTuples (hsize);
-  
+
   // Parse the cloud data and store it in the array
   double xy[2];
   for (int d = 0; d < hsize; ++d)
@@ -164,10 +165,10 @@ pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
   return (true);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointT> bool
-pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
-    const pcl::PointCloud<PointT> &cloud, const std::string &field_name, const int index, 
+PCLHistogramVisualizer::updateFeatureHistogram (
+    const pcl::PointCloud<PointT> &cloud, const std::string &field_name, const int index,
     const std::string &id)
 {
   if (index < 0 || index >= cloud.points.size ())
@@ -175,7 +176,7 @@ pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
     PCL_ERROR ("[updateFeatureHistogram] Invalid point index (%d) given!\n", index);
     return (false);
   }
-  
+
   // Get the fields present in this cloud
   std::vector<pcl::PCLPointField> fields;
   // Check if our field exists
@@ -193,14 +194,14 @@ pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
     return (false);
   }
   RenWinInteract* renwinupd = &wins_[id];
-    
+
   vtkSmartPointer<vtkDoubleArray> xy_array = vtkSmartPointer<vtkDoubleArray>::New ();
   xy_array->SetNumberOfComponents (2);
   xy_array->SetNumberOfTuples (fields[field_idx].count);
 
   // Parse the cloud data and store it in the array
   double xy[2];
-  for (uint32_t d = 0; d < fields[field_idx].count; ++d)
+  for (std::uint32_t d = 0; d < fields[field_idx].count; ++d)
   {
     xy[0] = d;
     //xy[1] = cloud.points[index].histogram[d];
@@ -209,10 +210,13 @@ pcl::visualization::PCLHistogramVisualizer::updateFeatureHistogram (
     xy[1] = data;
     xy_array->SetTuple (d, xy);
   }
-  
+
   reCreateActor (xy_array, renwinupd, cloud.fields[field_idx].count - 1);
   return (true);
 }
+
+} // namespace visualization
+} // namespace pcl
 
 #endif
 

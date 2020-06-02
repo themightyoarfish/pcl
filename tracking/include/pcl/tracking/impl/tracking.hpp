@@ -1,9 +1,10 @@
 #ifndef PCL_TRACKING_IMPL_TRACKING_H_
 #define PCL_TRACKING_IMPL_TRACKING_H_
 
+#include <pcl/memory.h>
+#include <pcl/pcl_macros.h>
 #include <pcl/common/eigen.h>
 #include <ctime>
-#include <pcl/tracking/boost.h>
 #include <pcl/tracking/tracking.h>
 
 namespace pcl
@@ -120,7 +121,7 @@ namespace pcl
         getTranslationAndEulerAngles (trans,
                                       trans_x, trans_y, trans_z,
                                       trans_roll, trans_pitch, trans_yaw);
-        return pcl::tracking::ParticleXYZRPY (trans_x, trans_y, trans_z, trans_roll, trans_pitch, trans_yaw);
+        return {trans_x, trans_y, trans_z, trans_roll, trans_pitch, trans_yaw};
       }
 
       // a[i]
@@ -138,7 +139,7 @@ namespace pcl
         }
       }
       
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
     
     inline std::ostream& operator << (std::ostream& os, const ParticleXYZRPY& p)
@@ -293,7 +294,7 @@ namespace pcl
         }
       }
       
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
     
     inline std::ostream& operator << (std::ostream& os, const ParticleXYZR& p)
@@ -448,7 +449,7 @@ namespace pcl
         }
       }
       
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
     
     inline std::ostream& operator << (std::ostream& os, const ParticleXYRPY& p)
@@ -601,7 +602,7 @@ namespace pcl
         }
       }
       
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
     
     inline std::ostream& operator << (std::ostream& os, const ParticleXYRP& p)
@@ -754,7 +755,7 @@ namespace pcl
         }
       }
       
-      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+      PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
     
     inline std::ostream& operator << (std::ostream& os, const ParticleXYR& p)

@@ -37,7 +37,7 @@
  *
  */
 
-#include <gtest/gtest.h>
+#include <pcl/test/gtest.h>
 #include <pcl/point_cloud.h>
 #include <pcl/features/rops_estimation.h>
 #include <pcl/io/pcd_io.h>
@@ -135,7 +135,7 @@ main (int argc, char** argv)
     return (-1);
   }
 
-  indices = boost::shared_ptr <pcl::PointIndices> (new pcl::PointIndices ());
+  indices.reset (new pcl::PointIndices);
   std::ifstream indices_file;
   indices_file.open (argv[2], std::ifstream::in);
   for (std::string line; std::getline (indices_file, line);)

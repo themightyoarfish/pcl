@@ -37,10 +37,12 @@
  * $Id$
  *
  */
-#ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_DISTANCE_H_
-#define PCL_REGISTRATION_CORRESPONDENCE_REJECTION_DISTANCE_H_
+
+#pragma once
 
 #include <pcl/registration/correspondence_rejection.h>
+#include <pcl/memory.h>  // for static_pointer_cast
+
 
 namespace pcl
 {
@@ -65,18 +67,17 @@ namespace pcl
       using CorrespondenceRejector::getClassName;
 
       public:
-        typedef boost::shared_ptr<CorrespondenceRejectorDistance> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorDistance> ConstPtr;
+        using Ptr = shared_ptr<CorrespondenceRejectorDistance>;
+        using ConstPtr = shared_ptr<const CorrespondenceRejectorDistance>;
 
         /** \brief Empty constructor. */
-        CorrespondenceRejectorDistance () : max_distance_(std::numeric_limits<float>::max ()),
-                                            data_container_ ()
+        CorrespondenceRejectorDistance () : max_distance_(std::numeric_limits<float>::max ())
         {
           rejection_name_ = "CorrespondenceRejectorDistance";
         }
       
         /** \brief Empty destructor */
-        virtual ~CorrespondenceRejectorDistance () {}
+        ~CorrespondenceRejectorDistance () {}
 
         /** \brief Get a list of valid correspondences after rejection from the original set of correspondences.
           * \param[in] original_correspondences the set of initial correspondences given
@@ -84,7 +85,7 @@ namespace pcl
           */
         void
         getRemainingCorrespondences (const pcl::Correspondences& original_correspondences, 
-                                     pcl::Correspondences& remaining_correspondences);
+                                     pcl::Correspondences& remaining_correspondences) override;
 
         /** \brief Set the maximum distance used for thresholding in correspondence rejection.
           * \param[in] distance Distance to be used as maximum distance between correspondences. 
@@ -96,19 +97,20 @@ namespace pcl
 
         /** \brief Get the maximum distance used for thresholding in correspondence rejection. */
         inline float 
-        getMaximumDistance () { return std::sqrt (max_distance_); };
+        getMaximumDistance () const { return std::sqrt (max_distance_); };
 
         /** \brief Provide a source point cloud dataset (must contain XYZ
           * data!), used to compute the correspondence distance.  
           * \param[in] cloud a cloud containing XYZ data
           */
-        template <typename PointT> inline void 
+        template <typename PointT>
+        PCL_DEPRECATED(1, 12, "pcl::registration::CorrespondenceRejectorDistance::setInputCloud is deprecated. Please use setInputSource instead")
+        inline void 
         setInputCloud (const typename pcl::PointCloud<PointT>::ConstPtr &cloud)
         {
-          PCL_WARN ("[pcl::registration::%s::setInputCloud] setInputCloud is deprecated. Please use setInputSource instead.\n", getClassName ().c_str ());
           if (!data_container_)
             data_container_.reset (new DataContainer<PointT>);
-          boost::static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputSource (cloud);
+          static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputSource (cloud);
         }
 
         /** \brief Provide a source point cloud dataset (must contain XYZ
@@ -120,7 +122,7 @@ namespace pcl
         {
           if (!data_container_)
             data_container_.reset (new DataContainer<PointT>);
-          boost::static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputSource (cloud);
+          static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputSource (cloud);
         }
 
         /** \brief Provide a target point cloud dataset (must contain XYZ
@@ -132,18 +134,18 @@ namespace pcl
         {
           if (!data_container_)
             data_container_.reset (new DataContainer<PointT>);
-          boost::static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputTarget (target);
+          static_pointer_cast<DataContainer<PointT> > (data_container_)->setInputTarget (target);
         }
 
 
         /** \brief See if this rejector requires source points */
         bool
-        requiresSourcePoints () const
+        requiresSourcePoints () const override
         { return (true); }
 
         /** \brief Blob method for setting the source cloud */
         void
-        setSourcePoints (pcl::PCLPointCloud2::ConstPtr cloud2)
+        setSourcePoints (pcl::PCLPointCloud2::ConstPtr cloud2) override
         { 
           PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
           fromPCLPointCloud2 (*cloud2, *cloud);
@@ -152,12 +154,12 @@ namespace pcl
         
         /** \brief See if this rejector requires a target cloud */
         bool
-        requiresTargetPoints () const
+        requiresTargetPoints () const override
         { return (true); }
 
         /** \brief Method for setting the target cloud */
         void
-        setTargetPoints (pcl::PCLPointCloud2::ConstPtr cloud2)
+        setTargetPoints (pcl::PCLPointCloud2::ConstPtr cloud2) override
         { 
           PointCloud<PointXYZ>::Ptr cloud (new PointCloud<PointXYZ>);
           fromPCLPointCloud2 (*cloud2, *cloud);
@@ -172,10 +174,10 @@ namespace pcl
           * confident that the tree will be set correctly.
           */
         template <typename PointT> inline void
-        setSearchMethodTarget (const boost::shared_ptr<pcl::search::KdTree<PointT> > &tree, 
-                               bool force_no_recompute = false) 
+        setSearchMethodTarget (const typename pcl::search::KdTree<PointT>::Ptr &tree,
+                               bool force_no_recompute = false)
         { 
-          boost::static_pointer_cast< DataContainer<PointT> > 
+          static_pointer_cast< DataContainer<PointT> > 
             (data_container_)->setSearchMethodTarget (tree, force_no_recompute );
         }
 
@@ -186,7 +188,7 @@ namespace pcl
           * \param[out] correspondences the set of resultant correspondences.
           */
         inline void 
-        applyRejection (pcl::Correspondences &correspondences)
+        applyRejection (pcl::Correspondences &correspondences) override
         {
           getRemainingCorrespondences (*input_correspondences_, correspondences);
         }
@@ -196,7 +198,7 @@ namespace pcl
           */
         float max_distance_;
 
-        typedef boost::shared_ptr<DataContainerInterface> DataContainerPtr;
+        using DataContainerPtr = DataContainerInterface::Ptr;
 
         /** \brief A pointer to the DataContainer object containing the input and target point clouds */
         DataContainerPtr data_container_;
@@ -206,5 +208,3 @@ namespace pcl
 }
 
 #include <pcl/registration/impl/correspondence_rejection_distance.hpp>
-
-#endif /* PCL_REGISTRATION_CORRESPONDENCE_REJECTION_DISTANCE_H_ */

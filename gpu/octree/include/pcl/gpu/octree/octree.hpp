@@ -39,6 +39,7 @@
 
 #include <vector>
 
+#include <pcl/memory.h>
 #include <pcl/point_types.h>
 #include <pcl/pcl_macros.h>
 #include <pcl/gpu/containers/device_array.h>
@@ -64,25 +65,26 @@ namespace pcl
             virtual ~Octree();
 
             /** \brief Types */
-            typedef boost::shared_ptr<Octree> Ptr;
+            using Ptr = shared_ptr<Octree>;
+            using ConstPtr = shared_ptr<const Octree>;
 
             /** \brief Point typwe supported */
-            typedef pcl::PointXYZ PointType;
+            using PointType = pcl::PointXYZ;
 
             /** \brief Point cloud supported */
-            typedef DeviceArray<PointType> PointCloud;
+            using PointCloud = DeviceArray<PointType>;
             
             /** \brief Point Batch query cloud type */
-            typedef DeviceArray<PointType> Queries;
+            using Queries = DeviceArray<PointType>;
 
             /** \brief Point Radiuses for batch query  */
-            typedef DeviceArray<float> Radiuses;            
+            using Radiuses = DeviceArray<float>;            
 
             /** \brief Point Indices for batch query  */
-            typedef DeviceArray<int> Indices;    
+            using Indices = DeviceArray<int>;    
             
             /** \brief Point Sqrt distances array type */
-            typedef DeviceArray<float> ResultSqrDists;
+            using ResultSqrDists = DeviceArray<float>;
             
             const PointCloud*   cloud_;
             
@@ -93,7 +95,7 @@ namespace pcl
 			void build();
 
             /** \brief Returns true if tree has been built */
-            bool isBuilt();
+            bool isBuilt() const;
 
             /** \brief Downloads Octree from GPU to search using CPU function. It use useful for single (not-batch) search */
             void internalDownload();

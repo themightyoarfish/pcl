@@ -38,16 +38,11 @@
  *
  */
 
-// STL
 #include <iostream>
 
-// PCL
 #include <pcl/io/pcd_io.h>
-#include <pcl/point_types.h>
-#include <pcl/common/io.h>
 #include <pcl/keypoints/sift_keypoint.h>
 #include <pcl/features/normal_3d.h>
-// #include <pcl/visualization/pcl_visualizer.h>
 
 /* This example shows how to estimate the SIFT points based on the
  * Normal gradients i.e. curvature than using the Intensity gradient
@@ -84,7 +79,7 @@ main(int, char** argv)
   ne.compute(*cloud_normals);
 
   // Copy the xyz info from cloud_xyz and add it to cloud_normals as the xyz field in PointNormals estimation is zero
-  for(size_t i = 0; i<cloud_normals->points.size(); ++i)
+  for(std::size_t i = 0; i<cloud_normals->points.size(); ++i)
   {
     cloud_normals->points[i].x = cloud_xyz->points[i].x;
     cloud_normals->points[i].y = cloud_xyz->points[i].y;

@@ -45,31 +45,6 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
-pcl::StatisticalOutlierRemoval<PointT>::applyFilter (PointCloud &output)
-{
-  std::vector<int> indices;
-  if (keep_organized_)
-  {
-    bool temp = extract_removed_indices_;
-    extract_removed_indices_ = true;
-    applyFilterIndices (indices);
-    extract_removed_indices_ = temp;
-
-    output = *input_;
-    for (int rii = 0; rii < static_cast<int> (removed_indices_->size ()); ++rii)  // rii = removed indices iterator
-      output.points[(*removed_indices_)[rii]].x = output.points[(*removed_indices_)[rii]].y = output.points[(*removed_indices_)[rii]].z = user_filter_value_;
-    if (!pcl_isfinite (user_filter_value_))
-      output.is_dense = false;
-  }
-  else
-  {
-    applyFilterIndices (indices);
-    copyPointCloud (*input_, indices, output);
-  }
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template <typename PointT> void
 pcl::StatisticalOutlierRemoval<PointT>::applyFilterIndices (std::vector<int> &indices)
 {
   // Initialize the search class
@@ -94,9 +69,9 @@ pcl::StatisticalOutlierRemoval<PointT>::applyFilterIndices (std::vector<int> &in
   int valid_distances = 0;
   for (int iii = 0; iii < static_cast<int> (indices_->size ()); ++iii)  // iii = input indices iterator
   {
-    if (!pcl_isfinite (input_->points[(*indices_)[iii]].x) ||
-        !pcl_isfinite (input_->points[(*indices_)[iii]].y) ||
-        !pcl_isfinite (input_->points[(*indices_)[iii]].z))
+    if (!std::isfinite (input_->points[(*indices_)[iii]].x) ||
+        !std::isfinite (input_->points[(*indices_)[iii]].y) ||
+        !std::isfinite (input_->points[(*indices_)[iii]].z))
     {
       distances[iii] = 0.0;
       continue;
@@ -120,10 +95,10 @@ pcl::StatisticalOutlierRemoval<PointT>::applyFilterIndices (std::vector<int> &in
 
   // Estimate the mean and the standard deviation of the distance vector
   double sum = 0, sq_sum = 0;
-  for (size_t i = 0; i < distances.size (); ++i)
+  for (const float &distance : distances)
   {
-    sum += distances[i];
-    sq_sum += distances[i] * distances[i];
+    sum += distance;
+    sq_sum += distance * distance;
   }
   double mean = sum / static_cast<double>(valid_distances);
   double variance = (sq_sum - sum * sum / static_cast<double>(valid_distances)) / (static_cast<double>(valid_distances) - 1);

@@ -37,10 +37,10 @@
 #include <pcl/gpu/containers/initialization.h>
 
 #include <iostream>
-#include <stdlib.h>
+#include <cstdlib>
 
 void pcl::gpu::error(const char *error_string, const char *file, const int line, const char *func)
 {	
     std::cout << "Error: " << error_string << "\t" << file << ":" << line << std::endl;
-    exit(0);
+    exit(EXIT_FAILURE);
 }

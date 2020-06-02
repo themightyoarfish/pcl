@@ -33,12 +33,9 @@
  *  ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: point_operators.h 4389 2012-02-10 10:10:26Z nizar $
- *
  */
 
-#ifndef PCL_GEOMETRY_POLYGON_OPERATORS_H
-#define PCL_GEOMETRY_POLYGON_OPERATORS_H
+#pragma once
 
 #include "planar_polygon.h"
 #include <pcl/point_cloud.h>
@@ -69,4 +66,3 @@ namespace pcl
 } // namespace pcl
 
 #include "impl/polygon_operations.hpp"
-#endif // PCL_GEOMETRY_POLYGON_OPERATORS_H=======

@@ -37,8 +37,7 @@
  *
  */
 
-#ifndef PCL_FILTERS_FILTER_INDICES_H_
-#define PCL_FILTERS_FILTER_INDICES_H_
+#pragma once
 
 #include <pcl/filters/filter.h>
 
@@ -76,39 +75,29 @@ namespace pcl
   {
     public:
       using Filter<PointT>::extract_removed_indices_;
-      typedef pcl::PointCloud<PointT> PointCloud;
+      using PointCloud = pcl::PointCloud<PointT>;
 
-      typedef boost::shared_ptr< FilterIndices<PointT> > Ptr;
-      typedef boost::shared_ptr< const FilterIndices<PointT> > ConstPtr;
+      using Ptr = shared_ptr<FilterIndices<PointT> >;
+      using ConstPtr = shared_ptr<const FilterIndices<PointT> >;
 
 
       /** \brief Constructor.
         * \param[in] extract_removed_indices Set to true if you want to be able to extract the indices of points being removed (default = false).
         */
       FilterIndices (bool extract_removed_indices = false) :
-          negative_ (false), 
-          keep_organized_ (false), 
+          Filter<PointT> (extract_removed_indices),
+          negative_ (false),
+          keep_organized_ (false),
           user_filter_value_ (std::numeric_limits<float>::quiet_NaN ())
       {
-        extract_removed_indices_ = extract_removed_indices;
       }
 
-      /** \brief Empty virtual destructor. */
-      virtual
-      ~FilterIndices ()
-      {
-      }
-
-      inline void
-      filter (PointCloud &output)
-      {
-        pcl::Filter<PointT>::filter (output);
-      }
+      using Filter<PointT>::filter;
 
       /** \brief Calls the filtering method and returns the filtered point cloud indices.
         * \param[out] indices the resultant filtered point cloud indices
         */
-      inline void
+      void
       filter (std::vector<int> &indices)
       {
         if (!initCompute ())
@@ -172,6 +161,8 @@ namespace pcl
 
       using Filter<PointT>::initCompute;
       using Filter<PointT>::deinitCompute;
+      using Filter<PointT>::input_;
+      using Filter<PointT>::removed_indices_;
 
       /** \brief False = normal filter behavior (default), true = inverted behavior. */
       bool negative_;
@@ -187,8 +178,8 @@ namespace pcl
       applyFilter (std::vector<int> &indices) = 0;
 
       /** \brief Abstract filter method for point cloud. */
-      virtual void
-      applyFilter (PointCloud &output) = 0;
+      void
+      applyFilter (PointCloud &output) override;
   };
 
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -205,30 +196,20 @@ namespace pcl
   class PCL_EXPORTS FilterIndices<pcl::PCLPointCloud2> : public Filter<pcl::PCLPointCloud2>
   {
     public:
-      typedef pcl::PCLPointCloud2 PCLPointCloud2;
+      using PCLPointCloud2 = pcl::PCLPointCloud2;
 
       /** \brief Constructor.
         * \param[in] extract_removed_indices Set to true if you want to extract the indices of points being removed (default = false).
         */
       FilterIndices (bool extract_removed_indices = false) :
+          Filter<PCLPointCloud2> (extract_removed_indices),
           negative_ (false), 
           keep_organized_ (false), 
           user_filter_value_ (std::numeric_limits<float>::quiet_NaN ())
       {
-        extract_removed_indices_ = extract_removed_indices;
       }
 
-      /** \brief Empty virtual destructor. */
-      virtual
-      ~FilterIndices ()
-      {
-      }
-
-      virtual void
-      filter (PCLPointCloud2 &output)
-      {
-        pcl::Filter<PCLPointCloud2>::filter (output);
-      }
+      using Filter<PCLPointCloud2>::filter;
 
       /** \brief Calls the filtering method and returns the filtered point cloud indices.
         * \param[out] indices the resultant filtered point cloud indices
@@ -300,14 +281,11 @@ namespace pcl
       applyFilter (std::vector<int> &indices) = 0;
 
       /** \brief Abstract filter method for point cloud. */
-      virtual void
-      applyFilter (PCLPointCloud2 &output) = 0;
+      void
+      applyFilter (PCLPointCloud2 &output) override = 0;
   };
 }
 
 #ifdef PCL_NO_PRECOMPILE
 #include <pcl/filters/impl/filter_indices.hpp>
 #endif
-
-#endif  //#ifndef PCL_FILTERS_FILTER_INDICES_H_
-

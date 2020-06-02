@@ -37,8 +37,8 @@
  * $Id$
  *
  */
-#ifndef PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_
-#define PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_
+
+#pragma once
 
 #include <pcl/registration/correspondence_rejection.h>
 
@@ -67,8 +67,8 @@ namespace pcl
       using CorrespondenceRejector::getClassName;
 
       public:
-        typedef boost::shared_ptr<CorrespondenceRejectorTrimmed> Ptr;
-        typedef boost::shared_ptr<const CorrespondenceRejectorTrimmed> ConstPtr;
+        using Ptr = shared_ptr<CorrespondenceRejectorTrimmed>;
+        using ConstPtr = shared_ptr<const CorrespondenceRejectorTrimmed>;
 
         /** \brief Empty constructor. */
         CorrespondenceRejectorTrimmed () : 
@@ -79,7 +79,7 @@ namespace pcl
         }
 
         /** \brief Destructor. */
-        virtual ~CorrespondenceRejectorTrimmed () {}
+        ~CorrespondenceRejectorTrimmed () {}
 
         /** \brief Set the expected ratio of overlap between point clouds (in
           * terms of correspondences).
@@ -91,7 +91,7 @@ namespace pcl
 
         /** \brief Get the maximum distance used for thresholding in correspondence rejection. */
         inline float 
-        getOverlapRatio () { return overlap_ratio_; };
+        getOverlapRatio () const { return overlap_ratio_; };
 
         /** \brief Set a minimum number of correspondences. If the specified overlap ratio causes to have
           * less correspondences,  \a CorrespondenceRejectorTrimmed will try to return at least
@@ -104,7 +104,7 @@ namespace pcl
 
         /** \brief Get the minimum number of correspondences. */
         inline unsigned int 
-        getMinCorrespondences () { return nr_min_correspondences_; };
+        getMinCorrespondences () const { return nr_min_correspondences_; };
 
 
         /** \brief Get a list of valid correspondences after rejection from the original set of correspondences.
@@ -113,7 +113,7 @@ namespace pcl
           */
         void
         getRemainingCorrespondences (const pcl::Correspondences& original_correspondences,
-                                     pcl::Correspondences& remaining_correspondences);
+                                     pcl::Correspondences& remaining_correspondences) override;
 
       protected:
 
@@ -121,7 +121,7 @@ namespace pcl
           * \param[out] correspondences the set of resultant correspondences.
           */
         inline void 
-        applyRejection (pcl::Correspondences &correspondences)
+        applyRejection (pcl::Correspondences &correspondences) override
         {
           getRemainingCorrespondences (*input_correspondences_, correspondences);
         }
@@ -137,5 +137,3 @@ namespace pcl
 }
 
 #include <pcl/registration/impl/correspondence_rejection_trimmed.hpp>
-
-#endif    // PCL_REGISTRATION_CORRESPONDENCE_REJECTION_TRIMMED_H_

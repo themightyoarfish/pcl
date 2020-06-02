@@ -47,8 +47,13 @@
 
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> bool
-pcl::SampleConsensusModelCircle2D<PointT>::isSampleGood(const std::vector<int> &samples) const
+pcl::SampleConsensusModelCircle2D<PointT>::isSampleGood(const Indices &samples) const
 {
+  if (samples.size () != sample_size_)
+  {
+    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::isSampleGood] Wrong number of samples (is %lu, should be %lu)!\n", samples.size (), sample_size_);
+    return (false);
+  }
   // Get the values at the two points
   Eigen::Array2d p0 (input_->points[samples[0]].x, input_->points[samples[0]].y);
   Eigen::Array2d p1 (input_->points[samples[1]].x, input_->points[samples[1]].y);
@@ -66,16 +71,16 @@ pcl::SampleConsensusModelCircle2D<PointT>::isSampleGood(const std::vector<int> &
 
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> bool
-pcl::SampleConsensusModelCircle2D<PointT>::computeModelCoefficients (const std::vector<int> &samples, Eigen::VectorXf &model_coefficients) const
+pcl::SampleConsensusModelCircle2D<PointT>::computeModelCoefficients (const Indices &samples, Eigen::VectorXf &model_coefficients) const
 {
   // Need 3 samples
-  if (samples.size () != 3)
+  if (samples.size () != sample_size_)
   {
     PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::computeModelCoefficients] Invalid set of samples given (%lu)!\n", samples.size ());
     return (false);
   }
 
-  model_coefficients.resize (3);
+  model_coefficients.resize (model_size_);
 
   Eigen::Vector2d p0 (input_->points[samples[0]].x, input_->points[samples[0]].y);
   Eigen::Vector2d p1 (input_->points[samples[1]].x, input_->points[samples[1]].y);
@@ -112,11 +117,11 @@ pcl::SampleConsensusModelCircle2D<PointT>::getDistancesToModel (const Eigen::Vec
   }
   distances.resize (indices_->size ());
 
-  // Iterate through the 3d points and calculate the distances from them to the sphere
-  for (size_t i = 0; i < indices_->size (); ++i)
+  // Iterate through the 3d points and calculate the distances from them to the circle
+  for (std::size_t i = 0; i < indices_->size (); ++i)
     // Calculate the distance from the point to the circle as the difference between
     // dist(point,circle_origin) and circle_radius
-    distances[i] = fabsf (std::sqrt (
+    distances[i] = std::abs (std::sqrt (
                                     ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) *
                                     ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) +
 
@@ -129,7 +134,7 @@ pcl::SampleConsensusModelCircle2D<PointT>::getDistancesToModel (const Eigen::Vec
 template <typename PointT> void
 pcl::SampleConsensusModelCircle2D<PointT>::selectWithinDistance (
     const Eigen::VectorXf &model_coefficients, const double threshold, 
-    std::vector<int> &inliers)
+    Indices &inliers)
 {
   // Check if the model is valid given the user constraints
   if (!isModelValid (model_coefficients))
@@ -137,16 +142,17 @@ pcl::SampleConsensusModelCircle2D<PointT>::selectWithinDistance (
     inliers.clear ();
     return;
   }
-  int nr_p = 0;
-  inliers.resize (indices_->size ());
-  error_sqr_dists_.resize (indices_->size ());
+  inliers.clear ();
+  error_sqr_dists_.clear ();
+  inliers.reserve (indices_->size ());
+  error_sqr_dists_.reserve (indices_->size ());
 
-  // Iterate through the 3d points and calculate the distances from them to the sphere
-  for (size_t i = 0; i < indices_->size (); ++i)
+  // Iterate through the 3d points and calculate the distances from them to the circle
+  for (std::size_t i = 0; i < indices_->size (); ++i)
   {
-    // Calculate the distance from the point to the sphere as the difference between
-    // dist(point,sphere_origin) and sphere_radius
-    float distance = fabsf (std::sqrt (
+    // Calculate the distance from the point to the circle as the difference between
+    // dist(point,circle_origin) and circle_radius
+    float distance = std::abs (std::sqrt (
                                       ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) *
                                       ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) +
 
@@ -156,31 +162,28 @@ pcl::SampleConsensusModelCircle2D<PointT>::selectWithinDistance (
     if (distance < threshold)
     {
       // Returns the indices of the points whose distances are smaller than the threshold
-      inliers[nr_p] = (*indices_)[i];
-      error_sqr_dists_[nr_p] = static_cast<double> (distance);
-      ++nr_p;
+      inliers.push_back ((*indices_)[i]);
+      error_sqr_dists_.push_back (static_cast<double> (distance));
     }
   }
-  inliers.resize (nr_p);
-  error_sqr_dists_.resize (nr_p);
 }
 
 //////////////////////////////////////////////////////////////////////////
-template <typename PointT> int
+template <typename PointT> std::size_t
 pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistance (
     const Eigen::VectorXf &model_coefficients, const double threshold) const
 {
   // Check if the model is valid given the user constraints
   if (!isModelValid (model_coefficients))
     return (0);
-  int nr_p = 0;
+  std::size_t nr_p = 0;
 
-  // Iterate through the 3d points and calculate the distances from them to the sphere
-  for (size_t i = 0; i < indices_->size (); ++i)
+  // Iterate through the 3d points and calculate the distances from them to the circle
+  for (std::size_t i = 0; i < indices_->size (); ++i)
   {
-    // Calculate the distance from the point to the sphere as the difference between
-    // dist(point,sphere_origin) and sphere_radius
-    float distance = fabsf (std::sqrt (
+    // Calculate the distance from the point to the circle as the difference between
+    // dist(point,circle_origin) and circle_radius
+    float distance = std::abs (std::sqrt (
                                       ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) *
                                       ( input_->points[(*indices_)[i]].x - model_coefficients[0] ) +
 
@@ -196,21 +199,21 @@ pcl::SampleConsensusModelCircle2D<PointT>::countWithinDistance (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelCircle2D<PointT>::optimizeModelCoefficients (
-      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients, Eigen::VectorXf &optimized_coefficients) const
+      const Indices &inliers, const Eigen::VectorXf &model_coefficients, Eigen::VectorXf &optimized_coefficients) const
 {
   optimized_coefficients = model_coefficients;
 
   // Needs a set of valid model coefficients
-  if (model_coefficients.size () != 3)
+  if (!isModelValid (model_coefficients))
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::optimizeModelCoefficients] Invalid number of model coefficients given (%lu)!\n", model_coefficients.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::optimizeModelCoefficients] Given model is invalid!\n");
     return;
   }
 
-  // Need at least 3 samples
-  if (inliers.size () <= 3)
+  // Need more than the minimum sample size to make a difference
+  if (inliers.size () <= sample_size_)
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::optimizeModelCoefficients] Not enough inliers found to support a model (%lu)! Returning the same coefficients.\n", inliers.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::optimizeModelCoefficients] Not enough inliers to refine/optimize the model's coefficients (%lu)! Returning the same coefficients.\n", inliers.size ());
     return;
   }
 
@@ -227,13 +230,13 @@ pcl::SampleConsensusModelCircle2D<PointT>::optimizeModelCoefficients (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> void
 pcl::SampleConsensusModelCircle2D<PointT>::projectPoints (
-      const std::vector<int> &inliers, const Eigen::VectorXf &model_coefficients,
+      const Indices &inliers, const Eigen::VectorXf &model_coefficients,
       PointCloud &projected_points, bool copy_data_fields) const
 {
   // Needs a valid set of model coefficients
-  if (model_coefficients.size () != 3)
+  if (!isModelValid (model_coefficients))
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::projectPoints] Invalid number of model coefficients given (%lu)!\n", model_coefficients.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::projectPoints] Given model is invalid!\n");
     return;
   }
 
@@ -248,38 +251,38 @@ pcl::SampleConsensusModelCircle2D<PointT>::projectPoints (
     projected_points.width    = input_->width;
     projected_points.height   = input_->height;
 
-    typedef typename pcl::traits::fieldList<PointT>::type FieldList;
+    using FieldList = typename pcl::traits::fieldList<PointT>::type;
     // Iterate over each point
-    for (size_t i = 0; i < projected_points.points.size (); ++i)
+    for (std::size_t i = 0; i < projected_points.points.size (); ++i)
       // Iterate over each dimension
       pcl::for_each_type <FieldList> (NdConcatenateFunctor <PointT, PointT> (input_->points[i], projected_points.points[i]));
 
-    // Iterate through the 3d points and calculate the distances from them to the plane
-    for (size_t i = 0; i < inliers.size (); ++i)
+    // Iterate through the points and project them to the circle
+    for (const auto &inlier : inliers)
     {
-      float dx = input_->points[inliers[i]].x - model_coefficients[0];
-      float dy = input_->points[inliers[i]].y - model_coefficients[1];
+      float dx = input_->points[inlier].x - model_coefficients[0];
+      float dy = input_->points[inlier].y - model_coefficients[1];
       float a = std::sqrt ( (model_coefficients[2] * model_coefficients[2]) / (dx * dx + dy * dy) );
 
-      projected_points.points[inliers[i]].x = a * dx + model_coefficients[0];
-      projected_points.points[inliers[i]].y = a * dy + model_coefficients[1];
+      projected_points.points[inlier].x = a * dx + model_coefficients[0];
+      projected_points.points[inlier].y = a * dy + model_coefficients[1];
     }
   }
   else
   {
     // Allocate enough space and copy the basics
     projected_points.points.resize (inliers.size ());
-    projected_points.width    = static_cast<uint32_t> (inliers.size ());
+    projected_points.width    = static_cast<std::uint32_t> (inliers.size ());
     projected_points.height   = 1;
 
-    typedef typename pcl::traits::fieldList<PointT>::type FieldList;
+    using FieldList = typename pcl::traits::fieldList<PointT>::type;
     // Iterate over each point
-    for (size_t i = 0; i < inliers.size (); ++i)
+    for (std::size_t i = 0; i < inliers.size (); ++i)
       // Iterate over each dimension
       pcl::for_each_type <FieldList> (NdConcatenateFunctor <PointT, PointT> (input_->points[inliers[i]], projected_points.points[i]));
 
-    // Iterate through the 3d points and calculate the distances from them to the plane
-    for (size_t i = 0; i < inliers.size (); ++i)
+    // Iterate through the points and project them to the circle
+    for (std::size_t i = 0; i < inliers.size (); ++i)
     {
       float dx = input_->points[inliers[i]].x - model_coefficients[0];
       float dy = input_->points[inliers[i]].y - model_coefficients[1];
@@ -294,23 +297,23 @@ pcl::SampleConsensusModelCircle2D<PointT>::projectPoints (
 //////////////////////////////////////////////////////////////////////////
 template <typename PointT> bool
 pcl::SampleConsensusModelCircle2D<PointT>::doSamplesVerifyModel (
-      const std::set<int> &indices, const Eigen::VectorXf &model_coefficients, const double threshold) const
+      const std::set<index_t> &indices, const Eigen::VectorXf &model_coefficients, const double threshold) const
 {
   // Needs a valid model coefficients
-  if (model_coefficients.size () != 3)
+  if (!isModelValid (model_coefficients))
   {
-    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::doSamplesVerifyModel] Invalid number of model coefficients given (%lu)!\n", model_coefficients.size ());
+    PCL_ERROR ("[pcl::SampleConsensusModelCircle2D::doSamplesVerifyModel] Given model is invalid!\n");
     return (false);
   }
 
-  for (std::set<int>::const_iterator it = indices.begin (); it != indices.end (); ++it)
-    // Calculate the distance from the point to the sphere as the difference between
-    //dist(point,sphere_origin) and sphere_radius
-    if (fabsf (std::sqrt (
-                         ( input_->points[*it].x - model_coefficients[0] ) *
-                         ( input_->points[*it].x - model_coefficients[0] ) +
-                         ( input_->points[*it].y - model_coefficients[1] ) *
-                         ( input_->points[*it].y - model_coefficients[1] )
+  for (const auto &index : indices)
+    // Calculate the distance from the point to the circle as the difference between
+    //dist(point,circle_origin) and circle_radius
+    if (std::abs (std::sqrt (
+                         ( input_->points[index].x - model_coefficients[0] ) *
+                         ( input_->points[index].x - model_coefficients[0] ) +
+                         ( input_->points[index].y - model_coefficients[1] ) *
+                         ( input_->points[index].y - model_coefficients[1] )
                          ) - model_coefficients[2]) > threshold)
       return (false);
 

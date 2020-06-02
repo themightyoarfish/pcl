@@ -38,12 +38,19 @@
  *
  */
 
+
 #ifndef PCL_REGISTRATION_CORRESPONDENCE_ESTIMATION_ORGANIZED_PROJECTION_IMPL_HPP_
 #define PCL_REGISTRATION_CORRESPONDENCE_ESTIMATION_ORGANIZED_PROJECTION_IMPL_HPP_
 
-///////////////////////////////////////////////////////////////////////////////////////////
+
+namespace pcl
+{
+
+namespace registration
+{
+
 template <typename PointSource, typename PointTarget, typename Scalar> bool
-pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::initCompute ()
+CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::initCompute ()
 {
   // Set the target_cloud_updated_ variable to true, so that the kd-tree is not built - it is not needed for this class
   target_cloud_updated_ = false;
@@ -66,9 +73,9 @@ pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, Poin
   return (true);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointSource, typename PointTarget, typename Scalar> void
-pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::determineCorrespondences (
+CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::determineCorrespondences (
     pcl::Correspondences &correspondences,
     double max_distance)
 {
@@ -76,7 +83,7 @@ pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, Poin
     return;
 
   correspondences.resize (indices_->size ());
-  size_t c_index = 0;
+  std::size_t c_index = 0;
 
   for (std::vector<int>::const_iterator src_it = indices_->begin (); src_it != indices_->end (); ++src_it)
   {
@@ -100,7 +107,7 @@ pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, Poin
         if (!isFinite (pt_tgt))
           continue;
         /// Check if the depth difference is larger than the threshold
-        if (fabs (uv[2] - pt_tgt.z) > depth_threshold_)
+        if (std::abs (uv[2] - pt_tgt.z) > depth_threshold_)
           continue;
 
         double dist = (p_src3 - pt_tgt.getVector3fMap ()).norm ();
@@ -113,15 +120,18 @@ pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, Poin
   correspondences.resize (c_index);
 }
 
-///////////////////////////////////////////////////////////////////////////////////////////
+
 template <typename PointSource, typename PointTarget, typename Scalar> void
-pcl::registration::CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::determineReciprocalCorrespondences (
+CorrespondenceEstimationOrganizedProjection<PointSource, PointTarget, Scalar>::determineReciprocalCorrespondences (
     pcl::Correspondences &correspondences,
     double max_distance)
 {
   // Call the normal determineCorrespondences (...), as doing it both ways will not improve the results
   determineCorrespondences (correspondences, max_distance);
 }
+
+} // namespace registration
+} // namespace pcl
 
 #endif    // PCL_REGISTRATION_CORRESPONDENCE_ESTIMATION_ORGANIZED_PROJECTION_IMPL_HPP_
 

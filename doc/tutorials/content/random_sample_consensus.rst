@@ -56,19 +56,19 @@ The following source code initializes two PointClouds and fills one of them with
 
 .. literalinclude:: sources/random_sample_consensus/random_sample_consensus.cpp
    :language: cpp
-   :lines: 30-63
+   :lines: 33-66
 
 Next we create a vector of ints that can store the locations of our inlier points from our PointCloud and now we can build our RandomSampleConsensus object using either a plane or a sphere model from our input cloud.
 
 .. literalinclude:: sources/random_sample_consensus/random_sample_consensus.cpp
    :language: cpp
-   :lines: 65-85
+   :lines: 68-88
 
 This last bit of code copies all of the points that fit our model to another cloud and then display either that or our original cloud in the viewer.
 
 .. literalinclude:: sources/random_sample_consensus/random_sample_consensus.cpp
    :language: cpp
-   :lines: 87-96
+   :lines: 90-99
 
 There is some extra code that relates to the display of the PointClouds in the 3D Viewer, but I'm not going to explain that here.
 
@@ -101,13 +101,13 @@ the program will display only the indices of the original PointCloud which satis
    :align: center
    :height: 400px
 
-Again hit 'r' to scale and center the view and then click and drag with the mouse to rotate around the cloud.  You can see there are no longer any points that do not lie with in the plane model in this PointCloud. Hit 'q' to exit the viewer and program.
+Again hit 'r' to scale and center the view and then click and drag with the mouse to rotate around the cloud.  You can see there are no longer any points that do not lie within the plane model in this PointCloud. Hit 'q' to exit the viewer and program.
 
 There is also an example using a sphere in this program.  If you run it with::
 
   $ ./random_sample_consensus -s
 
-It will generate and display a sphereical cloud and some outliers as well.
+It will generate and display a spherical cloud and some outliers as well.
 
 .. image:: images/ransac_outliers_sphere.png
    :align: center

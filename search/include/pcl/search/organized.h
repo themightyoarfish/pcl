@@ -37,9 +37,10 @@
  *
  */
 
-#ifndef PCL_SEARCH_ORGANIZED_NEIGHBOR_SEARCH_H_
-#define PCL_SEARCH_ORGANIZED_NEIGHBOR_SEARCH_H_
+#pragma once
 
+#include <pcl/memory.h>
+#include <pcl/pcl_macros.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/search/search.h>
@@ -64,14 +65,13 @@ namespace pcl
 
       public:
         // public typedefs
-        typedef pcl::PointCloud<PointT> PointCloud;
-        typedef boost::shared_ptr<PointCloud> PointCloudPtr;
+        using PointCloud = pcl::PointCloud<PointT>;
+        using PointCloudPtr = typename PointCloud::Ptr;
 
-        typedef boost::shared_ptr<const PointCloud> PointCloudConstPtr;
-        typedef boost::shared_ptr<const std::vector<int> > IndicesConstPtr;
+        using PointCloudConstPtr = typename PointCloud::ConstPtr;
 
-        typedef boost::shared_ptr<pcl::search::OrganizedNeighbor<PointT> > Ptr;
-        typedef boost::shared_ptr<const pcl::search::OrganizedNeighbor<PointT> > ConstPtr;
+        using Ptr = shared_ptr<pcl::search::OrganizedNeighbor<PointT> >;
+        using ConstPtr = shared_ptr<const pcl::search::OrganizedNeighbor<PointT> >;
 
         using pcl::search::Search<PointT>::indices_;
         using pcl::search::Search<PointT>::sorted_results_;
@@ -92,12 +92,11 @@ namespace pcl
           , KR_KRT_ (Eigen::Matrix<float, 3, 3, Eigen::RowMajor>::Zero ())
           , eps_ (eps)
           , pyramid_level_ (pyramid_level)
-          , mask_ ()
         {
         }
 
         /** \brief Empty deconstructor. */
-        virtual ~OrganizedNeighbor () {}
+        ~OrganizedNeighbor () {}
 
         /** \brief Test whether this search-object is valid (input is organized AND from projective device)
           *        User should use this method after setting the input cloud, since setInput just prints an error 
@@ -125,8 +124,8 @@ namespace pcl
           * \param[in] cloud the const boost shared pointer to a PointCloud message
           * \param[in] indices the const boost shared pointer to PointIndices
           */
-        virtual void
-        setInputCloud (const PointCloudConstPtr& cloud, const IndicesConstPtr &indices = IndicesConstPtr ())
+        void
+        setInputCloud (const PointCloudConstPtr& cloud, const IndicesConstPtr &indices = IndicesConstPtr ()) override
         {
           input_ = cloud;
           
@@ -134,11 +133,11 @@ namespace pcl
           input_ = cloud;
           indices_ = indices;
 
-          if (indices_.get () != NULL && indices_->size () != 0)
+          if (indices_ && !indices_->empty())
           {
             mask_.assign (input_->size (), 0);
-            for (std::vector<int>::const_iterator iIt = indices_->begin (); iIt != indices_->end (); ++iIt)
-              mask_[*iIt] = 1;
+            for (const auto& idx : *indices_)
+              mask_[idx] = 1;
           }
           else
             mask_.assign (input_->size (), 1);
@@ -159,9 +158,9 @@ namespace pcl
         int
         radiusSearch (const PointT &p_q,
                       double radius,
-                      std::vector<int> &k_indices,
+                      Indices &k_indices,
                       std::vector<float> &k_sqr_distances,
-                      unsigned int max_nn = 0) const;
+                      unsigned int max_nn = 0) const override;
 
         /** \brief estimated the projection matrix from the input cloud. */
         void 
@@ -179,8 +178,8 @@ namespace pcl
         int
         nearestKSearch (const PointT &p_q,
                         int k,
-                        std::vector<int> &k_indices,
-                        std::vector<float> &k_sqr_distances) const;
+                        Indices &k_indices,
+                        std::vector<float> &k_sqr_distances) const override;
 
         /** \brief projects a point into the image
           * \param[in] p point in 3D World Coordinate Frame to be projected onto the image plane
@@ -193,9 +192,9 @@ namespace pcl
 
         struct Entry
         {
-          Entry (int idx, float dist) : index (idx), distance (dist) {}
+          Entry (index_t idx, float dist) : index (idx), distance (dist) {}
           Entry () : index (0), distance (0) {}
-          unsigned index;
+          index_t index;
           float distance;
           
           inline bool 
@@ -213,10 +212,10 @@ namespace pcl
           * \return whether the top element changed or not.
           */
         inline bool 
-        testPoint (const PointT& query, unsigned k, std::priority_queue<Entry>& queue, unsigned index) const
+        testPoint (const PointT& query, unsigned k, std::priority_queue<Entry>& queue, index_t index) const
         {
           const PointT& point = input_->points [index];
-          if (mask_ [index] && pcl_isfinite (point.x))
+          if (mask_ [index] && std::isfinite (point.x))
           {
             //float squared_distance = (point.getVector3fMap () - query.getVector3fMap ()).squaredNorm ();
             float dist_x = point.x - query.x;
@@ -228,7 +227,7 @@ namespace pcl
               queue.push (Entry (index, squared_distance));
               return queue.size () == k;
             }
-            else if (queue.top ().distance > squared_distance)
+            if (queue.top ().distance > squared_distance)
             {
               queue.pop ();
               queue.push (Entry (index, squared_distance));
@@ -276,7 +275,7 @@ namespace pcl
         /** \brief mask, indicating whether the point was in the indices list or not.*/
         std::vector<unsigned char> mask_;
       public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+        PCL_MAKE_ALIGNED_OPERATOR_NEW
     };
   }
 }
@@ -284,6 +283,3 @@ namespace pcl
 #ifdef PCL_NO_PRECOMPILE
 #include <pcl/search/impl/organized.hpp>
 #endif
-
-#endif
-
