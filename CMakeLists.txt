@@ -26,7 +26,7 @@ if("${CMAKE_BUILD_TYPE}" STREQUAL "")
   set(CMAKE_BUILD_TYPE RelWithDebInfo CACHE STRING "build type default to RelWithDebInfo, set to Release to improve performance" FORCE)
 endif()
 
-project(PCL VERSION 1.11.0)
+project(PCL VERSION 1.11.0.99)
 string(TOLOWER ${PROJECT_NAME} PROJECT_NAME_LOWER)
 
 ### ---[ Find universal dependencies
@@ -256,7 +256,10 @@ endif()
 ### ---[ Find universal dependencies
 
 # OpenMP (optional)
-find_package(OpenMP COMPONENTS C CXX)
+option(WITH_OPENMP "Build with parallelization using OpenMP" TRUE)
+if(WITH_OPENMP)
+  find_package(OpenMP COMPONENTS C CXX)
+endif()
 if(OpenMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
