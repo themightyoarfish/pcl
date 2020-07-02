@@ -1383,7 +1383,7 @@ pcl::visualization::PCLVisualizer::setPointCloudRenderingProperties (
       // Check if the mapper has scalars
       if (!actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ())
         break;
-      
+
       // Check that scalars are not unisgned char (i.e. check if a LUT is used to colormap scalars assuming vtk ColorMode is Default)
       if (actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ()->IsA ("vtkUnsignedCharArray"))
         break;
@@ -1394,7 +1394,7 @@ pcl::visualization::PCLVisualizer::setPointCloudRenderingProperties (
         PCL_WARN ("[setPointCloudRenderingProperties] Range max must be greater than range min!\n");
         return (false);
       }
-      
+
       // Update LUT
       actor->GetMapper ()->GetLookupTable ()->SetRange (val1, val2);
       actor->GetMapper()->UseLookupTableScalarRangeOn ();
@@ -1549,7 +1549,7 @@ pcl::visualization::PCLVisualizer::setPointCloudRenderingProperties (
       // Check if the mapper has scalars
       if (!actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ())
         break;
-      
+
       // Check that scalars are not unisgned char (i.e. check if a LUT is used to colormap scalars assuming vtk ColorMode is Default)
       if (actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ()->IsA ("vtkUnsignedCharArray"))
         break;
@@ -1557,7 +1557,7 @@ pcl::visualization::PCLVisualizer::setPointCloudRenderingProperties (
       // Get range limits from existing LUT
       double *range;
       range = actor->GetMapper ()->GetLookupTable ()->GetRange ();
-      
+
       actor->GetMapper ()->ScalarVisibilityOn ();
       actor->GetMapper ()->SetScalarRange (range[0], range[1]);
       vtkSmartPointer<vtkLookupTable> table;
@@ -1573,7 +1573,7 @@ pcl::visualization::PCLVisualizer::setPointCloudRenderingProperties (
       // Check if the mapper has scalars
       if (!actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ())
         break;
-      
+
       // Check that scalars are not unisgned char (i.e. check if a LUT is used to colormap scalars assuming vtk ColorMode is Default)
       if (actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ()->IsA ("vtkUnsignedCharArray"))
         break;
@@ -1703,7 +1703,7 @@ pcl::visualization::PCLVisualizer::setShapeRenderingProperties (
       // Check if the mapper has scalars
       if (!actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ())
         break;
-      
+
       // Check that scalars are not unisgned char (i.e. check if a LUT is used to colormap scalars assuming vtk ColorMode is Default)
       if (actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ()->IsA ("vtkUnsignedCharArray"))
         break;
@@ -1714,7 +1714,7 @@ pcl::visualization::PCLVisualizer::setShapeRenderingProperties (
         PCL_WARN ("[setShapeRenderingProperties] Range max must be greater than range min!\n");
         return (false);
       }
-      
+
       // Update LUT
       actor->GetMapper ()->GetLookupTable ()->SetRange (val1, val2);
       actor->GetMapper()->UseLookupTableScalarRangeOn ();
@@ -1847,11 +1847,11 @@ pcl::visualization::PCLVisualizer::setShapeRenderingProperties (
       // Check that scalars are not unisgned char (i.e. check if a LUT is used to colormap scalars assuming vtk ColorMode is Default)
       if (actor->GetMapper ()->GetInput ()->GetPointData ()->GetScalars ()->IsA ("vtkUnsignedCharArray"))
         break;
-      
+
       // Get range limits from existing LUT
       double *range;
       range = actor->GetMapper ()->GetLookupTable ()->GetRange ();
-      
+
       actor->GetMapper ()->ScalarVisibilityOn ();
       actor->GetMapper ()->SetScalarRange (range[0], range[1]);
       vtkSmartPointer<vtkLookupTable> table;
@@ -2607,6 +2607,35 @@ bool
   return (true);
 }
 
+bool
+  pcl::visualization::PCLVisualizer::addPlane (const pcl::ModelCoefficients &coefficients, double x, double y, double z, double scale, const std::string &id, int viewport)
+{
+  // Check to see if this ID entry already exists (has it been already added to the visualizer?)
+  ShapeActorMap::iterator am_it = shape_actor_map_->find (id);
+  if (am_it != shape_actor_map_->end ())
+  {
+    pcl::console::print_warn (stderr, "[addPlane] A shape with id <%s> already exists! Please choose a different id and retry.\n", id.c_str ());
+    return (false);
+  }
+
+  if (coefficients.values.size () != 4)
+  {
+    PCL_WARN ("[addPlane] Coefficients size does not match expected size (expected 4).\n");
+    return (false);
+  }
+
+  vtkSmartPointer<vtkDataSet> data = createPlane (coefficients, x, y, z, scale);
+
+  // Create an Actor
+  vtkSmartPointer<vtkLODActor> actor;
+  createActorFromVTKDataSet (data, actor);
+  actor->GetProperty ()->SetRepresentationToSurface ();
+  addActorToRenderer (actor, viewport);
+
+  // Save the pointer/ID pair to the global actor map
+  (*shape_actor_map_)[id] = actor;
+  return (true);
+}
 /////////////////////////////////////////////////////////////////////////////////////////////
 bool
 pcl::visualization::PCLVisualizer::addCircle (const pcl::ModelCoefficients &coefficients, const std::string &id, int viewport)
@@ -2991,7 +3020,7 @@ pcl::visualization::PCLVisualizer::addPolygonMesh (const pcl::PolygonMesh &poly_
   pcl::fromPCLPointCloud2 (poly_mesh.cloud, *point_cloud);
   poly_points->SetNumberOfPoints (point_cloud->points.size ());
 
-  for (std::size_t i = 0; i < point_cloud->points.size (); ++i) 
+  for (std::size_t i = 0; i < point_cloud->points.size (); ++i)
   {
     const pcl::PointXYZ& p = point_cloud->points[i];
     poly_points->InsertPoint (i, p.x, p.y, p.z);
@@ -3424,7 +3453,7 @@ pcl::visualization::PCLVisualizer::addTextureMesh (const pcl::TextureMesh &mesh,
     mapper->MapDataArrayToMultiTextureAttribute(tu,
       this_coordinates_name.c_str(),
       vtkDataObject::FIELD_ASSOCIATION_POINTS);
-    
+
     polydata->GetPointData ()->AddArray (coordinates);
     actor->GetProperty ()->SetTexture (tu, texture);
     ++tex_id;
@@ -4331,7 +4360,7 @@ pcl::visualization::PCLVisualizer::close ()
 void
 pcl::visualization::PCLVisualizer::removeCorrespondences (
     const std::string &id, int viewport)
-{ 
+{
   removeShape (id, viewport);
 }
 
@@ -4569,7 +4598,7 @@ pcl::visualization::PCLVisualizer::getUniqueCameraFile (int argc, char **argv)
   p_file_indices = pcl::console::parse_file_extension_argument (argc, argv, ".pcd");
   if (!p_file_indices.empty ())
   {
-    boost::uuids::detail::sha1 sha1;    
+    boost::uuids::detail::sha1 sha1;
     bool valid = false;
 
     // Calculate sha1 using canonical paths
