@@ -39,11 +39,37 @@
 
 #pragma once
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
+#include <memory>
+#include <vector>
+#include <pcl/memory.h>
+#include <pcl/pcl_macros.h>
 #include <pcl/point_types.h>
 #include <pcl/point_cloud.h>
+#include <pcl/io/pcd_io.h>
 
-#include <vector>
-#include <memory>
+struct PointXYZRGBAI {
+  PCL_ADD_POINT4D;
+  PCL_ADD_UNION_RGB;
+  union {
+    struct {
+      float intensity;
+    };
+    float data_c[4];
+  };
+  PCL_MAKE_ALIGNED_OPERATOR_NEW
+};
+
+
+POINT_CLOUD_REGISTER_POINT_STRUCT (PointXYZRGBAI,
+                                   (float, x, x)
+                                   (float, y, y)
+                                   (float, z, z)
+                                   (std::uint32_t, rgba, rgba)
+                                   (float, intensity, intensity)
+);
 
 // Forward declaration for commonly used objects
 class Command;
@@ -55,7 +81,7 @@ class Cloud;
 // Some helpful typedef's for commonly used objects
 
 /// The type for the 3D points in the point cloud.
-using Point3D = pcl::PointXYZRGBA;
+using Point3D = PointXYZRGBAI;
 
 /// The type used as internal representation of a cloud object.
 using Cloud3D = pcl::PointCloud<Point3D>;
@@ -105,44 +131,26 @@ using CommandQueuePtr = std::shared_ptr<CommandQueue>;
 using BitMask = unsigned int;
 
 /// ID's for the key modifiers.
-enum KeyModifier
-{
+enum KeyModifier {
   NONE = 0x00000000,
   SHFT = 0x02000000,
   CTRL = 0x04000000,
-  ALT  = 0x08000000
+  ALT = 0x08000000
 };
 
 /// ID's for the mouse buttons.
-enum MouseButton
-{
-  NOBUTTON,
-  LEFT,
-  RIGHT
-};
+enum MouseButton { NOBUTTON, LEFT, RIGHT };
 
 /// Indices for the coordinate axes
 /// It is assumed that the ColorScheme X,Y,Z match these values
-enum Axis
-{
-  X,
-  Y,
-  Z
-};
+enum Axis { X, Y, Z };
 
 /// Indices for color components
-enum Color
-{
-  RED,
-  GREEN,
-  BLUE,
-  RGB
-};
+enum Color { RED, GREEN, BLUE, RGB };
 
 /// Scheme used for coloring the whole cloud.
 /// It is assumed that the Axiz X,Y,Z match the COLOR_BY_[X,Y,Z] values
-enum ColorScheme
-{
+enum ColorScheme {
   COLOR_BY_X = 0,
   COLOR_BY_Y,
   COLOR_BY_Z,
@@ -151,14 +159,11 @@ enum ColorScheme
 };
 
 /// Simple functor that produces sequential integers from an initial value
-struct IncIndex
-{
+struct IncIndex {
   unsigned int val_;
-  IncIndex(int v=0)
-  {
-    val_ = v;
-  }
-  unsigned int operator()()
+  IncIndex(int v = 0) { val_ = v; }
+  unsigned int
+  operator()()
   {
     return (val_++);
   }

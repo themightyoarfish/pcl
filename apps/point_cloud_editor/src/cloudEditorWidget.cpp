@@ -45,6 +45,7 @@
 #include <QDesktopWidget>
 #include <qgl.h>
 
+#define PCL_NO_PRECOMPILE
 #include <pcl/pcl_config.h>
 
 #ifdef OPENGL_IS_A_FRAMEWORK
@@ -154,7 +155,7 @@ CloudEditorWidget::save ()
   }
   else
   {
-    pcl::PointCloud<pcl::PointXYZ> uncolored_cloud;
+    pcl::PointCloud<pcl::PointXYZI> uncolored_cloud;
     pcl::copyPointCloud(cloud_ptr_->getInternalCloud(), uncolored_cloud);
     try
     {

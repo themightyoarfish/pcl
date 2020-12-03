@@ -37,6 +37,7 @@
 /// @details the implementation of the class DenoiseCommand
 /// @author Yue Li and Matthew Hielsberg
 
+#define PCL_NO_PRECOMPILE
 #include <pcl/PointIndices.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/statistical_outlier_removal.h>
