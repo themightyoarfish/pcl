@@ -46,15 +46,17 @@
 
 namespace pcl
 {
-  /** \brief @b AngularDensitySampling subsamples organized LIDAR point clouds using angular geometry and minimum spacing constraints.
-    *
-    * The @b AngularDensitySampling class operates on organized HxW point clouds from rotating LIDARs.
-    * It uses precomputed tangent factors to efficiently determine pixel neighborhoods at any range,
-    * ensuring no two kept points are closer than a specified minimum spacing.
-    *
-    * \author Point Cloud Library contributors
-    * \ingroup filters
-    */
+  /** \brief @b AngularDensitySampling subsamples organized LIDAR point clouds
+   * using angular geometry to an approximate voxel size. It typically creates a
+   * bit coarser clouds than VoxelGrid for the same voxel size
+   *
+   * The @b AngularDensitySampling class operates on organized HxW point clouds from rotating LIDARs where the beam angle increments are known.
+   * It uses precomputed tangent factors to efficiently determine pixel neighborhoods at any range,
+   * removing points that are less than the approximate voxel size away from other points.
+   *
+   * \author R. Diederichsen
+   * \ingroup filters
+   */
   template <typename PointT>
   class AngularDensitySampling : public FilterIndices<PointT>
   {
@@ -80,7 +82,7 @@ namespace pcl
         FilterIndices<PointT> (extract_removed_indices),
         azimuth_increment_ (0.0f),
         elevation_increment_ (0.0f),
-        min_spacing_ (0.0f),
+        approx_voxel_size_ (0.0f),
         cloud_width_ (0),
         cloud_height_ (0),
         tan_half_azimuth_inc_ (0.0f),
@@ -138,18 +140,18 @@ namespace pcl
         * \param[in] spacing minimum spacing in meters
         */
       inline void
-      setMinSpacing (float spacing)
+      setApproxVoxelSize (float approx_voxel_size)
       {
-        min_spacing_ = spacing;
+        approx_voxel_size_ = approx_voxel_size;
       }
 
       /** \brief Get the minimum spacing between kept points.
         * \return minimum spacing in meters
         */
       inline float
-      getMinSpacing () const
+      getApproxVoxelSize () const
       {
-        return min_spacing_;
+        return approx_voxel_size_;
       }
 
 
@@ -164,7 +166,7 @@ namespace pcl
       float elevation_increment_;
 
       /** \brief Minimum Euclidean distance between kept points. */
-      float min_spacing_;
+      float approx_voxel_size_;
 
       /** \brief Number of columns (W). */
       std::uint32_t cloud_width_;
@@ -180,6 +182,9 @@ namespace pcl
 
       /** \brief Mask tracking which points are kept during filtering. */
       std::vector<bool> kept_mask_;
+
+      /** \brief Mask tracking which points are removed during filtering. */
+      std::vector<bool> removed_mask_;
 
       /** \brief Filtered results are indexed by an indices array.
         * \param[out] indices The resultant indices.

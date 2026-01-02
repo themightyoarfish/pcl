@@ -64,9 +64,9 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
     return;
   }
 
-  if (min_spacing_ <= 0.0f)
+  if (approx_voxel_size_ <= 0.0f)
   {
-    PCL_ERROR ("[pcl::%s::applyFilter] Minimum spacing not set or invalid! Call setMinSpacing() with a positive value.\n", getClassName ().c_str ());
+    PCL_ERROR ("[pcl::%s::applyFilter] Approximate voxel size not set or invalid! Call setApproxVoxelSize() with a positive value.\n", getClassName ().c_str ());
     indices.clear ();
     return;
   }
@@ -78,9 +78,10 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
     return;
   }
 
-  const float spacing_sq = min_spacing_ * min_spacing_;
+  const float approx_voxel_size_sq = approx_voxel_size_ * approx_voxel_size_;
 
   kept_mask_.assign (cloud_width_ * cloud_height_, false);
+  removed_mask_.assign (cloud_width_ * cloud_height_, false);
   indices.clear ();
   removed_indices_->clear ();
 
@@ -97,64 +98,71 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
         continue;
       }
 
-      // Compute range
+      // blacklisted by previous iterations
+      if (removed_mask_[idx])
+      {
+        continue;
+      }
+
       const float range = std::sqrt (pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
 
-      // Compute pixel neighborhood size
+
+      // Compute pixel neighborhood size at this distance
       const float azimuth_pixel_spacing = 2.0f * range * tan_half_azimuth_inc_;
       const float elevation_pixel_spacing = 2.0f * range * tan_half_elevation_inc_;
 
-      // If pixel spacing is larger than min_spacing, all neighbors are further away
-      // so we can immediately keep this point without checking neighbors
-      if (azimuth_pixel_spacing > min_spacing_ && elevation_pixel_spacing > min_spacing_)
+      // If pixel spacing is larger than approx_voxel_size, all neighbors are further away
+      // so we can immediately keep this point without checking neighbors, as there cannot be any inside this voxel
+      if (azimuth_pixel_spacing > approx_voxel_size_ / 2 && elevation_pixel_spacing > approx_voxel_size_ / 2)
       {
         kept_mask_[idx] = true;
         indices.push_back (idx);
         continue;
       }
 
-      const int delta_w = static_cast<int> (std::ceil (min_spacing_ / azimuth_pixel_spacing));
-      const int delta_h = static_cast<int> (std::ceil (min_spacing_ / elevation_pixel_spacing));
-
-      // Check neighborhood for any kept point within min_spacing
-      bool should_keep = true;
+      const int delta_w = static_cast<int> (std::ceil (approx_voxel_size_ / azimuth_pixel_spacing));
+      const int delta_h = static_cast<int> (std::ceil (approx_voxel_size_ / elevation_pixel_spacing));
 
       const int h_min = std::max (0, static_cast<int> (h) - delta_h);
       const int h_max = std::min (static_cast<int> (cloud_height_) - 1, static_cast<int> (h) + delta_h);
       const int w_min = std::max (0, static_cast<int> (w) - delta_w);
       const int w_max = std::min (static_cast<int> (cloud_width_) - 1, static_cast<int> (w) + delta_w);
 
-      for (int nh = h_min; nh <= h_max && should_keep; ++nh)
+      // Keep this point, and mark violating neighbors as removed
+      kept_mask_[idx] = true;
+      indices.push_back (idx);
+
+      for (int nh = h_min; nh <= h_max; ++nh)
       {
-        for (int nw = w_min; nw <= w_max && should_keep; ++nw)
+        for (int nw = w_min; nw <= w_max; ++nw)
         {
           const std::uint32_t neighbor_idx = nh * cloud_width_ + nw;
 
-          if (!kept_mask_[neighbor_idx])
+          if (neighbor_idx == idx)
             continue;
 
           const PointT& neighbor = (*input_)[neighbor_idx];
 
+          // Ignore invalid points (0,0,0)
+          if (neighbor.x == 0 && neighbor.y == 0 && neighbor.z == 0)
+            continue;
+
+          // if (kept_mask_[neighbor_idx])
+          //   continue;
+
+          // Already removed
+          if (removed_mask_[neighbor_idx])
+            continue;
+
           // Squared Euclidean distance check
           const float dist_sq = (neighbor.getVector3fMap() - pt.getVector3fMap()).squaredNorm();
 
-          if (dist_sq < spacing_sq)
+          if (dist_sq < approx_voxel_size_sq)
           {
-            should_keep = false;
-            goto after_loop;
+            removed_mask_[neighbor_idx] = true;
+            removed_indices_->push_back (neighbor_idx);
           }
         }
-      }
-  after_loop:
-
-      if (should_keep)
-      {
-        kept_mask_[idx] = true;
-        indices.push_back (idx);
-      }
-      else if (extract_removed_indices_)
-      {
-        removed_indices_->push_back (idx);
       }
     }
   }
@@ -171,4 +179,5 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
 #define PCL_INSTANTIATE_AngularDensitySampling(T) template class PCL_EXPORTS pcl::AngularDensitySampling<T>;
 
 #endif    // PCL_FILTERS_IMPL_ANGULAR_DENSITY_SAMPLING_H_
+
 

@@ -51,7 +51,7 @@ using namespace pcl;
 using namespace pcl::io;
 using namespace pcl::console;
 
-float default_min_spacing = 0.5f;
+float default_approx_voxel_size = 0.5f;
 float default_azimuth_inc = 0.0f;  // 0 means auto-derive from cloud width
 float default_elevation_inc = 0.0f;
 
@@ -60,11 +60,12 @@ printHelp (int, char **argv)
 {
   print_error ("Syntax is: %s input.pcd output.pcd <options>\n", argv[0]);
   print_info ("  where options are:\n");
-  print_info ("    -spacing X     = minimum spacing between kept points (default: ");
-  print_value ("%f", default_min_spacing); print_info (")\n");
+  print_info ("    -voxel_size X     = approximate voxel size (default: ");
+  print_value ("%f", default_approx_voxel_size); print_info (")\n");
   print_info ("    -azimuth X     = azimuth angle increment in radians (default: auto from cloud width)\n");
   print_info ("    -elevation X   = elevation angle increment in radians (default: auto from cloud height)\n");
   print_info ("    -organized     = keep organized structure (set removed points to NaN)\n");
+  print_info ("    -negative      = return removed points instead of kept points\n");
 }
 
 int
@@ -86,12 +87,13 @@ main (int argc, char** argv)
     return (-1);
   }
 
-  float min_spacing = default_min_spacing;
+  float approx_voxel_size = default_approx_voxel_size;
   float azimuth_inc = default_azimuth_inc;
   float elevation_inc = default_elevation_inc;
   bool keep_organized = find_switch (argc, argv, "-organized");
+  bool negative = find_switch (argc, argv, "-negative");
 
-  parse_argument (argc, argv, "-spacing", min_spacing);
+  parse_argument (argc, argv, "-voxel_size", approx_voxel_size);
   parse_argument (argc, argv, "-azimuth", azimuth_inc);
   parse_argument (argc, argv, "-elevation", elevation_inc);
 
@@ -131,14 +133,15 @@ main (int argc, char** argv)
   pcl::fromPCLPointCloud2 (cloud2, *cloud);
 
   // Apply filter
-  print_highlight ("Filtering with min_spacing="); print_value ("%f", min_spacing); print_info (" ...\n");
+  print_highlight ("Filtering with approx_voxel_size="); print_value ("%f", approx_voxel_size); print_info (" ...\n");
   tt.tic ();
 
   pcl::AngularDensitySampling<pcl::PointXYZ> filter;
   filter.setInputCloud (cloud);
   filter.setAngleIncrements (azimuth_inc, elevation_inc);
-  filter.setMinSpacing (min_spacing);
+  filter.setApproxVoxelSize (approx_voxel_size);
   filter.setKeepOrganized (keep_organized);
+  filter.setNegative (negative);
 
   pcl::PointCloud<pcl::PointXYZ> output;
   filter.filter (output);
