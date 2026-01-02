@@ -13,6 +13,7 @@ endif()
 
 # The cpp files have been ordered so that files with a long compile time appear at the top, to efficiently build in parallel. Do not reorder alphabetically!
 set(srcs
+  src/angular_density_sampling.cpp
   src/voxel_grid_covariance.cpp
   src/conditional_removal.cpp
   src/convolution.cpp
@@ -50,6 +51,7 @@ set(srcs
 )
 
 set(incs
+  "include/pcl/${SUBSYS_NAME}/angular_density_sampling.h"
   "include/pcl/${SUBSYS_NAME}/conditional_removal.h"
   "include/pcl/${SUBSYS_NAME}/crop_box.h"
   "include/pcl/${SUBSYS_NAME}/clipper3D.h"
@@ -93,6 +95,7 @@ set(experimental_incs
 )
 
 set(impl_incs
+  "include/pcl/${SUBSYS_NAME}/impl/angular_density_sampling.hpp"
   "include/pcl/${SUBSYS_NAME}/impl/conditional_removal.hpp"
   "include/pcl/${SUBSYS_NAME}/impl/crop_box.hpp"
   "include/pcl/${SUBSYS_NAME}/impl/crop_hull.hpp"

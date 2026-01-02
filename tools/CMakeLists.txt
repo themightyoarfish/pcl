@@ -57,7 +57,7 @@ target_link_libraries(pcl_hdl_grabber pcl_common pcl_io)
 if(WITH_OPENNI)
   PCL_ADD_EXECUTABLE(pcl_oni2pcd COMPONENT ${SUBSYS_NAME} SOURCES oni2pcd.cpp)
   target_link_libraries(pcl_oni2pcd pcl_common pcl_io)
-  
+
   PCL_ADD_EXECUTABLE(pcl_openni_grabber_example COMPONENT ${SUBSYS_NAME} SOURCES openni_grabber_example.cpp)
   target_link_libraries(pcl_openni_grabber_example pcl_common pcl_io)
 
@@ -148,6 +148,9 @@ if(TARGET pcl_search)
 endif()
 
 if(TARGET pcl_filters)
+  PCL_ADD_EXECUTABLE(pcl_angular_density_sampling COMPONENT ${SUBSYS_NAME} SOURCES angular_density_sampling.cpp)
+  target_link_libraries(pcl_angular_density_sampling pcl_common pcl_io pcl_filters)
+
   PCL_ADD_EXECUTABLE(pcl_voxel_grid COMPONENT ${SUBSYS_NAME} SOURCES voxel_grid.cpp)
   target_link_libraries (pcl_voxel_grid pcl_common pcl_io pcl_filters)
 
