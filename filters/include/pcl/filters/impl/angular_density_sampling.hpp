@@ -104,12 +104,14 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
         continue;
       }
 
+      // TODO: can sqrt be avoided? since sqrt(a/b) = sqrt(a) / sqrt(b) and sqrt(a*b) = sqrt(a) * sqrt(b), we should be able to compute the
+      // pixel spacing without the sqrt. But could not get it to work.
       const float range = std::sqrt (pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
 
 
       // Compute pixel neighborhood size at this distance
-      const float azimuth_pixel_spacing = 2.0f * range * tan_half_azimuth_inc_;
-      const float elevation_pixel_spacing = 2.0f * range * tan_half_elevation_inc_;
+      const float azimuth_pixel_spacing = range * 2.0f * tan_half_azimuth_inc_;
+      const float elevation_pixel_spacing = range * 2.0f * tan_half_elevation_inc_;
 
       // If pixel spacing is larger than approx_voxel_size, all neighbors are further away
       // so we can immediately keep this point without checking neighbors, as there cannot be any inside this voxel
