@@ -78,8 +78,7 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
     return;
   }
 
-  const float half_spacing = min_spacing_ * 0.5f;
-  const float half_spacing_sq = half_spacing * half_spacing;
+  const float spacing_sq = min_spacing_ * min_spacing_;
 
   kept_mask_.assign (cloud_width_ * cloud_height_, false);
   indices.clear ();
@@ -105,14 +104,19 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
       const float azimuth_pixel_spacing = 2.0f * range * tan_half_azimuth_inc_;
       const float elevation_pixel_spacing = 2.0f * range * tan_half_elevation_inc_;
 
-      // Avoid division by zero or very small values
-      const float min_pixel_spacing = 1e-6f;
-      const int delta_w = azimuth_pixel_spacing > min_pixel_spacing ?
-        static_cast<int> (std::ceil (half_spacing / azimuth_pixel_spacing)) : cloud_width_;
-      const int delta_h = elevation_pixel_spacing > min_pixel_spacing ?
-        static_cast<int> (std::ceil (half_spacing / elevation_pixel_spacing)) : cloud_height_;
+      // If pixel spacing is larger than min_spacing, all neighbors are further away
+      // so we can immediately keep this point without checking neighbors
+      if (azimuth_pixel_spacing > min_spacing_ && elevation_pixel_spacing > min_spacing_)
+      {
+        kept_mask_[idx] = true;
+        indices.push_back (idx);
+        continue;
+      }
 
-      // Check neighborhood for any kept point within half_spacing
+      const int delta_w = static_cast<int> (std::ceil (min_spacing_ / azimuth_pixel_spacing));
+      const int delta_h = static_cast<int> (std::ceil (min_spacing_ / elevation_pixel_spacing));
+
+      // Check neighborhood for any kept point within min_spacing
       bool should_keep = true;
 
       const int h_min = std::max (0, static_cast<int> (h) - delta_h);
@@ -132,17 +136,16 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
           const PointT& neighbor = (*input_)[neighbor_idx];
 
           // Squared Euclidean distance check
-          const float dx = neighbor.x - pt.x;
-          const float dy = neighbor.y - pt.y;
-          const float dz = neighbor.z - pt.z;
-          const float dist_sq = dx * dx + dy * dy + dz * dz;
+          const float dist_sq = (neighbor.getVector3fMap() - pt.getVector3fMap()).squaredNorm();
 
-          if (dist_sq < half_spacing_sq)
+          if (dist_sq < spacing_sq)
           {
             should_keep = false;
+            goto after_loop;
           }
         }
       }
+  after_loop:
 
       if (should_keep)
       {
