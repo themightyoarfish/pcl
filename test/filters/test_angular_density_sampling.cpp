@@ -82,7 +82,7 @@ TEST(AngularDensitySampling, BasicFiltering)
   pcl::AngularDensitySampling<pcl::PointXYZ> filter(true);
   filter.setInputCloud(cloud);
   filter.setAngleIncrements(AZIMUTH_INC, ELEVATION_INC);
-  filter.setMinSpacing(MIN_SPACING);
+  filter.setApproxVoxelSize(MIN_SPACING);
 
   pcl::Indices indices;
   filter.filter(indices);
@@ -119,7 +119,7 @@ TEST(AngularDensitySampling, KeepOrganized)
   pcl::AngularDensitySampling<pcl::PointXYZ> filter(true);
   filter.setInputCloud(cloud);
   filter.setAngleIncrements(AZIMUTH_INC, ELEVATION_INC);
-  filter.setMinSpacing(0.5f);
+  filter.setApproxVoxelSize(0.5f);
   filter.setKeepOrganized(true);
 
   pcl::PointCloud<pcl::PointXYZ> output;
@@ -164,7 +164,7 @@ TEST(AngularDensitySampling, ZeroPointsSkipped)
   pcl::AngularDensitySampling<pcl::PointXYZ> filter;
   filter.setInputCloud(cloud);
   filter.setAngleIncrements(0.01f, 0.01f);
-  filter.setMinSpacing(5.0f);  // Large spacing
+  filter.setApproxVoxelSize(5.0f);  // Large spacing
 
   pcl::Indices indices;
   filter.filter(indices);

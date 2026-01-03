@@ -83,13 +83,22 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
   kept_mask_.assign (cloud_width_ * cloud_height_, false);
   removed_mask_.assign (cloud_width_ * cloud_height_, false);
   indices.clear ();
+  indices.reserve (cloud_width_ * cloud_height_);
   removed_indices_->clear ();
+  removed_indices_->reserve (cloud_width_ * cloud_height_);
 
   for (std::uint32_t h = 0; h < cloud_height_; ++h)
   {
     for (std::uint32_t w = 0; w < cloud_width_; ++w)
     {
       const std::uint32_t idx = h * cloud_width_ + w;
+
+      // blacklisted by previous iterations
+      if (removed_mask_[idx])
+      {
+        continue;
+      }
+
       const PointT& pt = (*input_)[idx];
 
       // Skip invalid points (0,0,0)
@@ -98,16 +107,9 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
         continue;
       }
 
-      // blacklisted by previous iterations
-      if (removed_mask_[idx])
-      {
-        continue;
-      }
-
       // TODO: can sqrt be avoided? since sqrt(a/b) = sqrt(a) / sqrt(b) and sqrt(a*b) = sqrt(a) * sqrt(b), we should be able to compute the
       // pixel spacing without the sqrt. But could not get it to work.
       const float range = std::sqrt (pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
-
 
       // Compute pixel neighborhood size at this distance
       const float azimuth_pixel_spacing = range * 2.0f * tan_half_azimuth_inc_;
@@ -122,8 +124,9 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
         continue;
       }
 
-      const int delta_w = static_cast<int> (std::ceil (approx_voxel_size_ / azimuth_pixel_spacing));
-      const int delta_h = static_cast<int> (std::ceil (approx_voxel_size_ / elevation_pixel_spacing));
+      // need to keep approx_voxel_size_ free in all directions, so double the delta
+      const int delta_w = static_cast<int> (std::ceil (2 * approx_voxel_size_ / azimuth_pixel_spacing));
+      const int delta_h = static_cast<int> (std::ceil (2 * approx_voxel_size_ / elevation_pixel_spacing));
 
       const int h_min = std::max (0, static_cast<int> (h) - delta_h);
       const int h_max = std::min (static_cast<int> (cloud_height_) - 1, static_cast<int> (h) + delta_h);
@@ -139,6 +142,9 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
         for (int nw = w_min; nw <= w_max; ++nw)
         {
           const std::uint32_t neighbor_idx = nh * cloud_width_ + nw;
+
+          if (removed_mask_[neighbor_idx])
+            continue;
 
           if (neighbor_idx == idx)
             continue;
