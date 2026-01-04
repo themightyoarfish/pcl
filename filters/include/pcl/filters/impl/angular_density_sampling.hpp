@@ -78,9 +78,15 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
     return;
   }
 
+  // When keep_organized_ is true, we need extract_removed_indices_ to be true
+  // The base class will set it, but we need it set before we build removed_indices_
+  if (keep_organized_ && !extract_removed_indices_)
+  {
+    extract_removed_indices_ = true;
+  }
+
   const float approx_voxel_size_sq = approx_voxel_size_ * approx_voxel_size_;
 
-  kept_mask_.assign (cloud_width_ * cloud_height_, false);
   removed_mask_.assign (cloud_width_ * cloud_height_, false);
   indices.clear ();
   indices.reserve (cloud_width_ * cloud_height_);
@@ -111,22 +117,23 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
       // pixel spacing without the sqrt. But could not get it to work.
       const float range = std::sqrt (pt.x * pt.x + pt.y * pt.y + pt.z * pt.z);
 
+      // tan(azimuth_increment / 2) = (d /  2) / range
+      // d = 2 * range * tan(azimuth_increment / 2)
+
       // Compute pixel neighborhood size at this distance
-      const float azimuth_pixel_spacing = range * 2.0f * tan_half_azimuth_inc_;
-      const float elevation_pixel_spacing = range * 2.0f * tan_half_elevation_inc_;
+      const float azimuth_pixel_spacing_m = range * 2.0f * tan_half_azimuth_inc_;
+      const float elevation_pixel_spacing_m = range * 2.0f * tan_half_elevation_inc_;
 
       // If pixel spacing is larger than approx_voxel_size, all neighbors are further away
       // so we can immediately keep this point without checking neighbors, as there cannot be any inside this voxel
-      if (azimuth_pixel_spacing > approx_voxel_size_ / 2 && elevation_pixel_spacing > approx_voxel_size_ / 2)
+      if (azimuth_pixel_spacing_m > approx_voxel_size_ / 2 && elevation_pixel_spacing_m > approx_voxel_size_ / 2)
       {
-        kept_mask_[idx] = true;
         indices.push_back (idx);
         continue;
       }
 
-      // need to keep approx_voxel_size_ free in all directions, so double the delta
-      const int delta_w = static_cast<int> (std::ceil (2 * approx_voxel_size_ / azimuth_pixel_spacing));
-      const int delta_h = static_cast<int> (std::ceil (2 * approx_voxel_size_ / elevation_pixel_spacing));
+      const int delta_w = static_cast<int> (std::ceil (approx_voxel_size_ / azimuth_pixel_spacing_m));
+      const int delta_h = static_cast<int> (std::ceil (approx_voxel_size_ / elevation_pixel_spacing_m));
 
       const int h_min = std::max (0, static_cast<int> (h) - delta_h);
       const int h_max = std::min (static_cast<int> (cloud_height_) - 1, static_cast<int> (h) + delta_h);
@@ -134,7 +141,6 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
       const int w_max = std::min (static_cast<int> (cloud_width_) - 1, static_cast<int> (w) + delta_w);
 
       // Keep this point, and mark violating neighbors as removed
-      kept_mask_[idx] = true;
       indices.push_back (idx);
 
       for (int nh = h_min; nh <= h_max; ++nh)
@@ -155,20 +161,14 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
           if (neighbor.x == 0 && neighbor.y == 0 && neighbor.z == 0)
             continue;
 
-          // if (kept_mask_[neighbor_idx])
-          //   continue;
-
-          // Already removed
-          if (removed_mask_[neighbor_idx])
-            continue;
-
           // Squared Euclidean distance check
           const float dist_sq = (neighbor.getVector3fMap() - pt.getVector3fMap()).squaredNorm();
 
           if (dist_sq < approx_voxel_size_sq)
           {
             removed_mask_[neighbor_idx] = true;
-            removed_indices_->push_back (neighbor_idx);
+            if (extract_removed_indices_)
+              removed_indices_->push_back (neighbor_idx);
           }
         }
       }
@@ -176,6 +176,12 @@ pcl::AngularDensitySampling<PointT>::applyFilter (Indices &indices)
   }
 
   // Handle negative_ flag
+  // When negative_ is true, we swap indices and removed_indices_ so that:
+  // - indices contains points that should be kept (normally removed)
+  // - removed_indices_ contains points that should be removed (normally kept)
+  // This works for both keep_organized_ true and false cases:
+  // - When keep_organized_ is false: swapped indices are used for output
+  // - When keep_organized_ is true: base class sets removed_indices_ to user_filter_value_
   if (negative_)
   {
     indices.swap (*removed_indices_);

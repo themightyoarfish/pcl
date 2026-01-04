@@ -70,6 +70,7 @@ namespace pcl
     using Filter<PointT>::extract_removed_indices_;
     using Filter<PointT>::getClassName;
     using FilterIndices<PointT>::negative_;
+    using FilterIndices<PointT>::keep_organized_;
 
     public:
       using Ptr = shared_ptr<AngularDensitySampling<PointT> >;
