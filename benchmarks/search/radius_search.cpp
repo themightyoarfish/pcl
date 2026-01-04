@@ -1,4 +1,5 @@
 #include <pcl/filters/filter.h>
+#include <pcl/filters/uniform_sampling_search.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/search/kdtree_nanoflann.h>
@@ -109,6 +110,22 @@ main(int argc, char** argv)
                 << std::endl;
     }
   }
+  // UniformSamplingSearch requires filter to be applied first
+  pcl::UniformSamplingSearch<pcl::PointXYZ> uniform_sampling_search;
+  uniform_sampling_search.setInputCloud(cloudFiltered);
+  // Use searchRadius/2 as voxel size for downsampling (reasonable default)
+  uniform_sampling_search.setRadiusSearch(searchRadius / 2.0);
+  // Apply filter to populate leaves_ before search can work
+  pcl::Indices filtered_indices;
+  uniform_sampling_search.filter(filtered_indices);
+  benchmark::RegisterBenchmark("UniformSamplingSearch",
+                               &BM_RadiusSearch,
+                               uniform_sampling_search,
+                               cloudFiltered,
+                               searchRadius,
+                               neighborLimit)
+      ->Unit(benchmark::kMicrosecond);
+
 
   pcl::search::OrganizedNeighbor<pcl::PointXYZ> organized_neighbor;
   organized_neighbor.setInputCloud(cloudIn);
