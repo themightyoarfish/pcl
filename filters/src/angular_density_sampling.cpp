@@ -41,9 +41,8 @@
 #include <pcl/filters/impl/angular_density_sampling.hpp>
 
 #ifndef PCL_NO_PRECOMPILE
-#include <pcl/point_types.h>
 #include <pcl/impl/instantiate.hpp>
+#include <pcl/point_types.h>
 
 PCL_INSTANTIATE(AngularDensitySampling, PCL_XYZ_POINT_TYPES)
 #endif
-
