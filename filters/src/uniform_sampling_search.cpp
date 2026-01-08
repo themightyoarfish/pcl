@@ -37,11 +37,10 @@
  *
  */
 
+#include <pcl/filters/impl/uniform_sampling_search.hpp>
+#include <pcl/filters/uniform_sampling_search.h>
 #include <pcl/impl/instantiate.hpp>
 #include <pcl/point_types.h>
-#include <pcl/filters/uniform_sampling_search.h>
-#include <pcl/filters/impl/uniform_sampling_search.hpp>
 
 // Instantiations of specific point types
-PCL_INSTANTIATE (UniformSamplingSearch, PCL_XYZ_POINT_TYPES)
-
+PCL_INSTANTIATE(UniformSamplingSearch, PCL_XYZ_POINT_TYPES)
