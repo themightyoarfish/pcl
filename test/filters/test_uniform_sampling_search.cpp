@@ -37,9 +37,9 @@
  *
  */
 
+#include <pcl/common/common.h>
 #include <pcl/common/distances.h>
 #include <pcl/common/io.h>
-#include <pcl/common/common.h>
 #include <pcl/filters/uniform_sampling.h>
 #include <pcl/filters/uniform_sampling_search.h>
 #include <pcl/io/pcd_io.h>
@@ -48,10 +48,11 @@
 #include <pcl/test/gtest.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
-#include <iostream>
+
 #include <algorithm>
 #include <cmath>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <map>
 #include <random>
@@ -96,7 +97,6 @@ TEST(PCL, UniformSamplingSearch_NearestKSearch)
   PointXYZ min_pt, max_pt;
   pcl::getMinMax3D(*filtered_cloud, min_pt, max_pt);
 
-
   // Test multiple queries
   std::mt19937 rng(12345);
   std::uniform_real_distribution<float> x_dist(min_pt.x, max_pt.x);
@@ -120,7 +120,8 @@ TEST(PCL, UniformSamplingSearch_NearestKSearch)
     std::vector<float> kd_distances;
     kdtree.nearestKSearch(query_point, k, kd_indices, kd_distances);
     ASSERT_EQ(kd_indices.size(), num_found);
-    ASSERT_EQ(filtered_cloud->at(search_indices[0]).getVector3fMap(), filtered_cloud->at(kd_indices[0]).getVector3fMap());
+    ASSERT_EQ(filtered_cloud->at(search_indices[0]).getVector3fMap(),
+              filtered_cloud->at(kd_indices[0]).getVector3fMap());
   }
 }
 
@@ -176,7 +177,8 @@ TEST(PCL, UniformSamplingSearch_RadiusSearch)
     // KdTree search on filtered cloud
     Indices kd_indices;
     std::vector<float> kd_distances;
-    int kd_num_found = kdtree.radiusSearch(query_point, search_radius, kd_indices, kd_distances);
+    int kd_num_found =
+        kdtree.radiusSearch(query_point, search_radius, kd_indices, kd_distances);
 
     // Verify same number of results
     ASSERT_EQ(num_found, kd_num_found);
@@ -285,14 +287,15 @@ TEST(PCL, UniformSamplingSearch_FilterOutputMatchesUniformSampling)
   ASSERT_EQ(uniform_sampling_indices.size(), uniform_sampling_search_indices.size());
 
   // Check that uniform_sampling points are identical to uniform_sampling_search points
-  ASSERT_EQ(uniform_sampling_output.size(), uniform_sampling_search_output.size()) << "Output clouds have different sizes!";
+  ASSERT_EQ(uniform_sampling_output.size(), uniform_sampling_search_output.size())
+      << "Output clouds have different sizes!";
 
   for (std::size_t i = 0; i < uniform_sampling_output.size(); ++i) {
     const auto& p1 = uniform_sampling_output[i];
     const auto& p2 = uniform_sampling_search_output[i];
-    ASSERT_EQ(p1.getVector3fMap(), p2.getVector3fMap()) << "Point mismatch at index " << i;
+    ASSERT_EQ(p1.getVector3fMap(), p2.getVector3fMap())
+        << "Point mismatch at index " << i;
   }
-
 }
 
 int

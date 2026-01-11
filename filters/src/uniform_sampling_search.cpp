@@ -44,4 +44,3 @@
 
 // Instantiations of specific point types
 PCL_INSTANTIATE(UniformSamplingSearch, PCL_XYZ_POINT_TYPES)
-

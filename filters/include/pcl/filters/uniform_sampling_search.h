@@ -194,4 +194,3 @@ protected:
 #ifdef PCL_NO_PRECOMPILE
 #include <pcl/filters/impl/uniform_sampling_search.hpp>
 #endif
-

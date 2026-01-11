@@ -77,7 +77,8 @@ pcl::UniformSamplingSearch<PointT>::applyFilter(Indices& indices)
   voxel_to_filtered_idx_.clear();
   auto input_cloud = search::Search<PointT>::getInputCloud();
 
-  for (index_t filtered_idx = 0; filtered_idx < static_cast<index_t>(indices.size()); ++filtered_idx) {
+  for (index_t filtered_idx = 0; filtered_idx < static_cast<index_t>(indices.size());
+       ++filtered_idx) {
     const index_t orig_idx = indices[filtered_idx];
     const PointT& pt = (*input_cloud)[orig_idx];
 
@@ -376,4 +377,3 @@ pcl::UniformSamplingSearch<PointT>::nearestKSearch(
   template class PCL_EXPORTS pcl::UniformSamplingSearch<T>;
 
 #endif // PCL_FILTERS_UNIFORM_SAMPLING_SEARCH_IMPL_H_
-
