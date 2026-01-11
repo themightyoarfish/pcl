@@ -173,15 +173,25 @@ protected:
   /** \brief Maximum search radius for limiting voxel neighborhood expansion. */
   double max_search_radius_;
 
+  /** \brief Map from voxel index to filtered cloud index. */
+  std::unordered_map<std::size_t, index_t> voxel_to_filtered_idx_;
+
   /** \brief Helper function to compute voxel index from a point.
    * \param[in] point the query point
    * \return linear voxel index
    */
   std::size_t
   getVoxelIndex(const PointT& point) const;
+
+  /** \brief Override applyFilter to build filtered index mapping.
+   * \param[out] indices The resultant indices.
+   */
+  void
+  applyFilter(Indices& indices) override;
 };
 } // namespace pcl
 
 #ifdef PCL_NO_PRECOMPILE
 #include <pcl/filters/impl/uniform_sampling_search.hpp>
 #endif
+

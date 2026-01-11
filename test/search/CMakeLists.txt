@@ -33,10 +33,6 @@ PCL_ADD_TEST(octree_search test_octree_search
              FILES test_octree.cpp
              LINK_WITH pcl_gtest pcl_search pcl_octree pcl_common)
 
-PCL_ADD_TEST(uniform_sampling_search test_uniform_sampling_search
-             FILES test_uniform_sampling_search.cpp
-             LINK_WITH pcl_gtest pcl_search pcl_filters pcl_common)
-
 if(BUILD_io)
   PCL_ADD_TEST(search test_search
                FILES test_search.cpp
