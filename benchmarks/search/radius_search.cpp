@@ -124,30 +124,30 @@ main(int argc, char** argv)
                                cloudFiltered,
                                searchRadius,
                                neighborLimit)
-      ->Unit(benchmark::kMicrosecond);
+      ->Unit(benchmark::kMicrosecond)->Iterations(10000);
 
 
-  pcl::search::OrganizedNeighbor<pcl::PointXYZ> organized_neighbor;
-  organized_neighbor.setInputCloud(cloudIn);
-  benchmark::RegisterBenchmark("OrganizedNeighborSearch",
-                               &BM_RadiusSearch,
-                               organized_neighbor,
-                               cloudIn,
-                               searchRadius,
-                               neighborLimit)
-      ->Unit(benchmark::kMicrosecond);
+  // pcl::search::OrganizedNeighbor<pcl::PointXYZ> organized_neighbor;
+  // organized_neighbor.setInputCloud(cloudIn);
+  // benchmark::RegisterBenchmark("OrganizedNeighborSearch",
+  //                              &BM_RadiusSearch,
+  //                              organized_neighbor,
+  //                              cloudIn,
+  //                              searchRadius,
+  //                              neighborLimit)
+  //     ->Unit(benchmark::kMicrosecond);
 
   pcl::search::KdTree<pcl::PointXYZ> kdtree(false);
   kdtree.setInputCloud(cloudIn);
   benchmark::RegisterBenchmark(
       "KdTree", &BM_RadiusSearch, kdtree, cloudIn, searchRadius, neighborLimit)
-      ->Unit(benchmark::kMicrosecond);
+      ->Unit(benchmark::kMicrosecond)->Iterations(10000);
 
-  benchmark::RegisterBenchmark(
-      "KdTreeAll", &BM_KdTreeAll, cloudFiltered, searchRadius, neighborLimit, false)
-      ->Unit(benchmark::kMicrosecond)
-      ->UseManualTime()
-      ->Iterations(1);
+  // benchmark::RegisterBenchmark(
+  //     "KdTreeAll", &BM_KdTreeAll, cloudFiltered, searchRadius, neighborLimit, false)
+  //     ->Unit(benchmark::kMicrosecond)
+  //     ->UseManualTime()
+  //     ->Iterations(1);
 
   benchmark::RegisterBenchmark("KdTreeAllThreaded",
                                &BM_KdTreeAll,
@@ -157,7 +157,7 @@ main(int argc, char** argv)
                                true)
       ->Unit(benchmark::kMicrosecond)
       ->UseManualTime()
-      ->Iterations(1);
+      ->Iterations(10000);
 
 #if PCL_HAS_NANOFLANN
   pcl::search::KdTreeNanoflann<pcl::PointXYZ> kdtreeNanoflann;
@@ -168,7 +168,7 @@ main(int argc, char** argv)
                                cloudIn,
                                searchRadius,
                                neighborLimit)
-      ->Unit(benchmark::kMicrosecond);
+      ->Unit(benchmark::kMicrosecond)->Iterations(10000);
 #endif
 
   benchmark::Initialize(&argc, argv);
