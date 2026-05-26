@@ -65,16 +65,79 @@ pcl::UniformSamplingSearch<PointT>::getVoxelIndex(const PointT& point) const
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename PointT>
+bool
+pcl::UniformSamplingSearch<PointT>::lookupVoxel(std::size_t voxel_idx,
+                                              VoxelSearchEntry& entry) const
+{
+  if (use_dense_voxel_grid_) {
+    if (voxel_idx >= voxel_search_grid_.size()) {
+      return false;
+    }
+    entry = voxel_search_grid_[voxel_idx];
+    return entry.orig_idx >= 0;
+  }
+
+  const auto it = voxel_search_map_.find(voxel_idx);
+  if (it == voxel_search_map_.end()) {
+    return false;
+  }
+  entry = it->second;
+  return entry.orig_idx >= 0;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT>
+float
+pcl::UniformSamplingSearch<PointT>::minSquaredDistanceToVoxel(const PointT& point,
+                                                            const Eigen::Vector4i& ijk,
+                                                            float leaf_size)
+{
+  const float vx0 = static_cast<float>(ijk[0]) * leaf_size;
+  const float vy0 = static_cast<float>(ijk[1]) * leaf_size;
+  const float vz0 = static_cast<float>(ijk[2]) * leaf_size;
+  const float vx1 = vx0 + leaf_size;
+  const float vy1 = vy0 + leaf_size;
+  const float vz1 = vz0 + leaf_size;
+
+  const float dx =
+      (point.x < vx0) ? vx0 - point.x : ((point.x > vx1) ? point.x - vx1 : 0.f);
+  const float dy =
+      (point.y < vy0) ? vy0 - point.y : ((point.y > vy1) ? point.y - vy1 : 0.f);
+  const float dz =
+      (point.z < vz0) ? vz0 - point.z : ((point.z > vz1) ? point.z - vz1 : 0.f);
+  return dx * dx + dy * dy + dz * dz;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+template <typename PointT>
 void
 pcl::UniformSamplingSearch<PointT>::applyFilter(Indices& indices)
 {
-  // Call base class implementation
   UniformSampling<PointT>::applyFilter(indices);
 
-  // Build mapping from voxel index to filtered cloud index
-  // The indices array contains original cloud indices in the order they will appear
-  // in the filtered cloud, so we iterate over it to build the correct mapping
-  voxel_to_filtered_idx_.clear();
+  voxel_search_grid_.clear();
+  voxel_search_map_.clear();
+  use_dense_voxel_grid_ = false;
+
+  const std::size_t bx = static_cast<std::size_t>(div_b_[0]);
+  const std::size_t by = static_cast<std::size_t>(div_b_[1]);
+  const std::size_t bz = static_cast<std::size_t>(div_b_[2]);
+  std::size_t total_voxels = 0;
+  if (bx > 0 && by > 0 && bz > 0) {
+    const std::size_t bxy = bx * by;
+    if (bxy / bx == by && bxy * bz / bxy == bz) {
+      total_voxels = bxy * bz;
+    }
+  }
+
+  if (total_voxels > 0 && total_voxels <= dense_grid_max_voxels_) {
+    use_dense_voxel_grid_ = true;
+    voxel_search_grid_.assign(total_voxels, VoxelSearchEntry{});
+  }
+  else {
+    voxel_search_map_.reserve(leaves_.size());
+  }
+
   auto input_cloud = search::Search<PointT>::getInputCloud();
 
   for (index_t filtered_idx = 0; filtered_idx < static_cast<index_t>(indices.size());
@@ -82,16 +145,24 @@ pcl::UniformSamplingSearch<PointT>::applyFilter(Indices& indices)
     const index_t orig_idx = indices[filtered_idx];
     const PointT& pt = (*input_cloud)[orig_idx];
 
-    // Compute voxel index for this point
     Eigen::Vector4i ijk = Eigen::Vector4i::Zero();
     ijk[0] = static_cast<int>(std::floor(pt.x * inverse_leaf_size_[0]));
     ijk[1] = static_cast<int>(std::floor(pt.y * inverse_leaf_size_[1]));
     ijk[2] = static_cast<int>(std::floor(pt.z * inverse_leaf_size_[2]));
 
-    Eigen::Vector4i relative_ijk = ijk - min_b_;
-    std::size_t voxel_idx = static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
+    const Eigen::Vector4i relative_ijk = ijk - min_b_;
+    const std::size_t voxel_idx =
+        static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
 
-    voxel_to_filtered_idx_[voxel_idx] = filtered_idx;
+    const VoxelSearchEntry entry{orig_idx, filtered_idx};
+    if (use_dense_voxel_grid_) {
+      if (voxel_idx < voxel_search_grid_.size()) {
+        voxel_search_grid_[voxel_idx] = entry;
+      }
+    }
+    else {
+      voxel_search_map_[voxel_idx] = entry;
+    }
   }
 }
 
@@ -149,49 +220,43 @@ pcl::UniformSamplingSearch<PointT>::radiusSearch(const PointT& point,
   for (int di = -delta; di <= delta; ++di) {
     for (int dj = -delta; dj <= delta; ++dj) {
       for (int dk = -delta; dk <= delta; ++dk) {
-        Eigen::Vector4i neighbor_ijk = query_ijk + Eigen::Vector4i(di, dj, dk, 0);
-        Eigen::Vector4i relative_ijk = neighbor_ijk - min_b_;
+        const Eigen::Vector4i neighbor_ijk =
+            query_ijk + Eigen::Vector4i(di, dj, dk, 0);
 
-        // Check bounds
+        // Sphere culling: skip voxels whose AABB is entirely outside the search sphere
+        if (minSquaredDistanceToVoxel(point, neighbor_ijk, leaf_size) > radius_sq)
+          continue;
+
+        const Eigen::Vector4i relative_ijk = neighbor_ijk - min_b_;
+
         if (relative_ijk[0] < 0 || relative_ijk[0] >= div_b_[0] ||
             relative_ijk[1] < 0 || relative_ijk[1] >= div_b_[1] ||
             relative_ijk[2] < 0 || relative_ijk[2] >= div_b_[2])
           continue;
 
-        // Compute linear voxel index
-        std::size_t voxel_idx = static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
+        const std::size_t voxel_idx =
+            static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
 
-        // Check if voxel exists
-        auto it = leaves_.find(voxel_idx);
-        if (it == leaves_.end())
+        VoxelSearchEntry entry;
+        if (!lookupVoxel(voxel_idx, entry))
           continue;
 
-        // Get point index from voxel
-        const index_t point_idx = static_cast<index_t>(it->second.idx);
-        if (point_idx < 0 || point_idx >= static_cast<index_t>(input_cloud->size()))
+        if (entry.orig_idx < 0 ||
+            entry.orig_idx >= static_cast<index_t>(input_cloud->size()))
           continue;
 
-        const PointT& neighbor = (*input_cloud)[point_idx];
+        const PointT& neighbor = (*input_cloud)[entry.orig_idx];
 
-        // Check if neighbor point is valid
         if (!pcl::isXYZFinite(neighbor))
           continue;
 
-        // Compute squared distance
         const float dist_sq =
             (neighbor.getVector3fMap() - point.getVector3fMap()).squaredNorm();
 
-        // Check if within radius
         if (dist_sq <= radius_sq) {
-          // Get filtered cloud index
-          auto filtered_it = voxel_to_filtered_idx_.find(voxel_idx);
-          if (filtered_it == voxel_to_filtered_idx_.end())
-            continue;
-
-          k_indices.push_back(filtered_it->second);
+          k_indices.push_back(entry.filtered_idx);
           k_sqr_distances.push_back(dist_sq);
 
-          // Check max_nn limit
           if (max_nn > 0 && k_indices.size() >= max_nn) {
             if (sorted_results_)
               this->sortResults(k_indices, k_sqr_distances);
@@ -248,12 +313,11 @@ pcl::UniformSamplingSearch<PointT>::nearestKSearch(
   query_ijk[1] = static_cast<int>(std::floor(point.y * inverse_leaf_size_[1]));
   query_ijk[2] = static_cast<int>(std::floor(point.z * inverse_leaf_size_[2]));
 
-  // Structure to hold candidate neighbors
   struct Candidate {
-    std::size_t voxel_idx;
+    index_t filtered_idx;
     float dist_sq;
 
-    Candidate(std::size_t v, float d) : voxel_idx(v), dist_sq(d) {}
+    Candidate(index_t f, float d) : filtered_idx(f), dist_sq(d) {}
 
     bool
     operator<(const Candidate& other) const
@@ -290,40 +354,44 @@ pcl::UniformSamplingSearch<PointT>::nearestKSearch(
               continue;
           }
 
-          Eigen::Vector4i neighbor_ijk = query_ijk + Eigen::Vector4i(di, dj, dk, 0);
-          Eigen::Vector4i relative_ijk = neighbor_ijk - min_b_;
+          const Eigen::Vector4i neighbor_ijk =
+              query_ijk + Eigen::Vector4i(di, dj, dk, 0);
 
-          // Check bounds
+          if (max_shell < std::numeric_limits<int>::max()) {
+            const float max_radius_sq =
+                static_cast<float>(max_search_radius_ * max_search_radius_);
+            if (minSquaredDistanceToVoxel(point, neighbor_ijk, leaf_size) >
+                max_radius_sq)
+              continue;
+          }
+
+          const Eigen::Vector4i relative_ijk = neighbor_ijk - min_b_;
+
           if (relative_ijk[0] < 0 || relative_ijk[0] >= div_b_[0] ||
               relative_ijk[1] < 0 || relative_ijk[1] >= div_b_[1] ||
               relative_ijk[2] < 0 || relative_ijk[2] >= div_b_[2])
             continue;
 
-          // Compute linear voxel index
-          std::size_t voxel_idx = static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
+          const std::size_t voxel_idx =
+              static_cast<std::size_t>(relative_ijk.dot(divb_mul_));
 
-          // Check if voxel exists
-          auto it = leaves_.find(voxel_idx);
-          if (it == leaves_.end())
+          VoxelSearchEntry entry;
+          if (!lookupVoxel(voxel_idx, entry))
             continue;
 
-          // Get point index from voxel
-          const index_t point_idx = static_cast<index_t>(it->second.idx);
-          if (point_idx < 0 || point_idx >= static_cast<index_t>(input_cloud->size()))
+          if (entry.orig_idx < 0 ||
+              entry.orig_idx >= static_cast<index_t>(input_cloud->size()))
             continue;
 
-          const PointT& neighbor = (*input_cloud)[point_idx];
+          const PointT& neighbor = (*input_cloud)[entry.orig_idx];
 
-          // Check if neighbor point is valid
           if (!pcl::isXYZFinite(neighbor))
             continue;
 
-          // Compute squared distance
           const float dist_sq =
               (neighbor.getVector3fMap() - point.getVector3fMap()).squaredNorm();
 
-          // Add candidate with voxel index
-          candidates.push_back(Candidate(voxel_idx, dist_sq));
+          candidates.push_back(Candidate(entry.filtered_idx, dist_sq));
         }
       }
     }
@@ -362,12 +430,8 @@ pcl::UniformSamplingSearch<PointT>::nearestKSearch(
   k_sqr_distances.resize(result_size);
 
   for (std::size_t i = 0; i < result_size; ++i) {
-    // Convert voxel index to filtered cloud index
-    auto filtered_it = voxel_to_filtered_idx_.find(candidates[i].voxel_idx);
-    if (filtered_it != voxel_to_filtered_idx_.end()) {
-      k_indices[i] = filtered_it->second;
-      k_sqr_distances[i] = candidates[i].dist_sq;
-    }
+    k_indices[i] = candidates[i].filtered_idx;
+    k_sqr_distances[i] = candidates[i].dist_sq;
   }
 
   return static_cast<int>(result_size);

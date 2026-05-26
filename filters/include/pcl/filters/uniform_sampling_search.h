@@ -43,6 +43,8 @@
 #include <pcl/search/search.h>
 
 #include <limits>
+#include <unordered_map>
+#include <vector>
 
 namespace pcl {
 /** \brief @b UniformSamplingSearch combines UniformSampling filtering with efficient
@@ -170,11 +172,26 @@ public:
                unsigned int max_nn = 0) const override;
 
 protected:
+  /** \brief Per-voxel search data: original cloud index and filtered cloud index. */
+  struct VoxelSearchEntry {
+    index_t orig_idx{-1};
+    index_t filtered_idx{-1};
+  };
+
+  /** \brief Maximum voxels for the dense lookup grid (~128 MiB of VoxelSearchEntry). */
+  static constexpr std::size_t dense_grid_max_voxels_ = 16 * 1024 * 1024;
+
   /** \brief Maximum search radius for limiting voxel neighborhood expansion. */
   double max_search_radius_;
 
-  /** \brief Map from voxel index to filtered cloud index. */
-  std::unordered_map<std::size_t, index_t> voxel_to_filtered_idx_;
+  /** \brief Dense O(1) voxel lookup when the grid is small enough. */
+  std::vector<VoxelSearchEntry> voxel_search_grid_;
+
+  /** \brief Sparse voxel lookup when the grid would be too large for dense storage. */
+  std::unordered_map<std::size_t, VoxelSearchEntry> voxel_search_map_;
+
+  /** \brief If true, use \a voxel_search_grid_; otherwise \a voxel_search_map_. */
+  bool use_dense_voxel_grid_{false};
 
   /** \brief Helper function to compute voxel index from a point.
    * \param[in] point the query point
@@ -182,6 +199,18 @@ protected:
    */
   std::size_t
   getVoxelIndex(const PointT& point) const;
+
+  /** \brief Lookup merged voxel data by linear voxel index.
+   * \return false if the voxel is unoccupied
+   */
+  bool
+  lookupVoxel(std::size_t voxel_idx, VoxelSearchEntry& entry) const;
+
+  /** \brief Squared distance from a point to the closest point on a voxel AABB. */
+  static float
+  minSquaredDistanceToVoxel(const PointT& point,
+                            const Eigen::Vector4i& ijk,
+                            float leaf_size);
 
   /** \brief Override applyFilter to build filtered index mapping.
    * \param[out] indices The resultant indices.
